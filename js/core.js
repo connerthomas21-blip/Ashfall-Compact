@@ -71,7 +71,7 @@ function frame(now) {
     const frozen = G.paused || G.menu || G.say || G.naming;
     if (!frozen) { G.scene.update(dt); if (S) S.playtime += dt; }
     draw();
-  }
+  } else if (typeof U !== 'undefined' && U.screen === 'title') drawTitle(dt);
   pressed.clear();
   requestAnimationFrame(frame);
 }

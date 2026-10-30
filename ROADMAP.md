@@ -13,7 +13,7 @@ Design: `GAME_SPEC.md` (section 2 lore is canonical; ask before any choice that 
 
 ## Lessons carried over from Starbreaker Saga
 - `node test/all.js <dir>` runs everything; run it before every commit.
-- A headless Playwright test for every milestone (`node test/smoke.js <dir>`, `node test/dialogue.js <dir>`, `node test/doors.js <dir>`, `node test/library.js <dir>`, `node test/combat.js <dir>`, `node test/choice.js <dir>`, `node test/varn.js <dir>`, `node test/ending.js <dir>`) that plays the slice and saves screenshots.
+- A headless Playwright test for every milestone (`node test/smoke.js <dir>`, `node test/dialogue.js <dir>`, `node test/doors.js <dir>`, `node test/library.js <dir>`, `node test/combat.js <dir>`, `node test/choice.js <dir>`, `node test/varn.js <dir>`, `node test/ending.js <dir>`, `node test/playthrough.js <dir>`) that plays the slice and saves screenshots.
 - A `window.__fast`-style hook for balance bots once combat exists (milestone 5).
 - Save codes as well as localStorage.
 
@@ -71,7 +71,7 @@ WASD or arrows move. 1/2/3 or Tab (Shift+Tab goes back) changes hero. J attacks,
    - At 0 HP the floor swallows him and sets `varn_alive`. The stair stays blocked by rock until then.
    - The ally AI sidesteps the blade after a reaction delay and not every time (75%). Movement uses grid pathfinding around the fissure and walls (`navTo`).
 
-   **About the spec's numbers.** "~155 HP" is a tabletop figure. In real time the heroes act about every second, not every six, so a straight conversion gives a fight of 30 to 40 seconds. Varn has 1,750 HP against the full party (×0.51 to 0.55 when a hero was sacrificed, depending on who). The autopilot bot wins about a third to two thirds of fights in 60 to 130s. `node test/varn.js <dir> [n]` runs the mechanics checks, screenshots and the balance table.
+   **About the spec's numbers.** "~155 HP" is a tabletop figure. In real time the heroes act about every second, not every six, so a straight conversion gives a fight of 30 to 40 seconds. Varn has 1,500 HP against the full party, scaled by who was sacrificed (`PARTY_SCALE`). Over 14 fights per party the autopilot bot won 57% with all three heroes (56 to 65s), 64% with Ichabod and Kieran, 57% with Raiden and Kieran, and 71% with Raiden and Ichabod (a slow fight of about 2 minutes). Its losses usually end with Varn under 30%. `node test/varn.js <dir> [n]` runs the mechanics checks, screenshots and the balance table.
 8. **Ending** (done):
    - The Quiet After: you walk back up through the Library from the stair. Each survivor, and Will if he lived, says one reflective line as a caption that doesn't pause play (`REFLECTIONS`, first matching condition wins). Ichabod's line after the whisper route is the permanent cost of `dinas_whisper`.
    - The surface: grey dawn, falling ash, the survivors at the cave mouth, and smoke on the northern horizon toward Olgareth.
@@ -79,7 +79,17 @@ WASD or arrows move. 1/2/3 or Tab (Shift+Tab goes back) changes hero. J attacks,
    - `chapter_complete` is set, and Continue on a finished save returns to the end card.
 
    `node test/ending.js <dir>` covers the release, Will-sacrifice and hero-sacrifice endings.
-9. Polish: lighting, audio hooks, tuning Varn with a bot (hard but winnable with 3 heroes, and with 2).
+9. **Polish** (done):
+   - Title backdrop: the Library's inlay with the glowing fissure and falling ash.
+   - Shard-Blades are summoned whenever their cooldown is up.
+   - Varn rebalanced over 14 fights per party.
+   - `node test/playthrough.js <dir>` plays from the title screen to the end card down both branches through real scene transitions.
+   - The game is published as a private claude.ai artifact (index.html plus js/).
+
+## Next ideas (not built)
+- Touch controls, so the game is playable on a phone (it needs a keyboard today).
+- Real art in the asset slots: the draw functions per hero (`DRAW_BODY`, `DRAW_ITEM`), `drawFoe`, `drawVarn`, `drawThyken`.
+- A hand-played tuning pass on Varn. The bot dodges 75% of blades, and a person may do better or worse.
 
 ## Story decisions
 - Will's wife lives in Olgareth: kept for now (the spec marks it as an editorial addition, not campaign canon).

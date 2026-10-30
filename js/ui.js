@@ -9,7 +9,7 @@ function renderUI() {
   let h = '';
   if (U.screen === 'title') {
     const saved = loadSaved();
-    h = `<div class="screen">
+    h = `<div class="screen title">
       <h1>The Ashfall Compact</h1><h2>The Deep Echo Library</h2>
       <div class="menu">
         ${saved ? '<button data-a="continue">Continue</button>' : ''}

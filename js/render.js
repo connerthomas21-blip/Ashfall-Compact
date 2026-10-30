@@ -452,6 +452,39 @@ function drawTorch(g, l) {
   g.fillStyle = PAL.emberHot; g.beginPath(); g.ellipse(l.x, l.y - 2.5, 1, fh * 0.5, 0, 0, 7); g.fill();
 }
 
+/* ---------- Title backdrop ---------- */
+// The Library floor from above: a broken ring of inlay, the fissure through it breathing ember light, ash falling.
+const TITLE = { ash: null, crack: null };
+function drawTitle(dt) {
+  if (!TITLE.ash) {
+    TITLE.ash = Array.from({ length: 70 }, () => ({ x: rnd(0, W), y: rnd(0, H), s: rnd(3, 9), r: rnd(0.4, 1.1) }));
+    const pts = [{ x: W * 0.62, y: -10 }]; let x = W * 0.62, y = -10;
+    while (y < H + 10) { y += rnd(10, 22); x += rnd(-14, 10); pts.push({ x, y }); }
+    TITLE.crack = pts;
+  }
+  ctx.setTransform(SCALE, 0, 0, SCALE, 0, 0);
+  ctx.fillStyle = '#0a0808'; ctx.fillRect(0, 0, W, H);
+  const t = G.time, cx = W * 0.5, cy = H * 0.55;
+  ctx.lineWidth = 0.8;
+  for (const [r, a] of [[150, 0.13], [145, 0.08], [86, 0.1], [48, 0.07]]) {
+    for (let k = 0; k < 120; k++) {
+      if (hash(k, r, 3) < 0.15) continue;
+      ctx.strokeStyle = `rgba(216,205,180,${a})`; ctx.beginPath(); ctx.arc(cx, cy, r, k / 120 * 6.283, (k + 0.75) / 120 * 6.283); ctx.stroke();
+    }
+  }
+  const pulse = 0.5 + Math.sin(t * 1.1) * 0.15;
+  for (const [w, col] of [[16, `rgba(224,112,42,${0.05 * pulse})`], [7, `rgba(224,112,42,${0.12 * pulse})`], [2.2, `rgba(224,112,42,${0.6 * pulse + 0.2})`], [0.8, 'rgba(255,190,120,.9)']]) {
+    ctx.strokeStyle = col; ctx.lineWidth = w; ctx.lineJoin = 'round'; ctx.lineCap = 'round'; ctx.beginPath();
+    TITLE.crack.forEach((p, i) => i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)); ctx.stroke();
+  }
+  for (const a of TITLE.ash) {
+    a.y += a.s * dt; a.x += Math.sin(t + a.s) * 3 * dt; if (a.y > H) { a.y = -3; a.x = rnd(0, W); }
+    ctx.fillStyle = 'rgba(200,190,175,.5)'; ctx.fillRect(a.x, a.y, a.r, a.r);
+  }
+  const vg = ctx.createRadialGradient(cx, cy, 60, cx, cy, W * 0.7);
+  vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,.75)'); ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
+}
+
 /* ---------- The surface: the final image ---------- */
 // Grey dawn over dark hills, ash falling, and on the northern horizon, smoke, toward Olgareth.
 function drawSurface(g, t) {

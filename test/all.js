@@ -2,7 +2,7 @@
 // Usage: node test/all.js <screenshot-dir>     (run this before every commit)
 const { spawnSync } = require('child_process'), path = require('path');
 const out = process.argv[2] || '.';
-const tests = ['smoke', 'dialogue', 'doors', 'library', 'combat', 'choice', ['varn', '3'], 'ending'];
+const tests = ['smoke', 'dialogue', 'doors', 'library', 'combat', 'choice', ['varn', '3'], 'ending', 'playthrough'];
 let bad = 0;
 for (const t of tests) {
   const [name, ...args] = [].concat(t);

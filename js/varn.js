@@ -9,7 +9,7 @@
 */
 
 const VARN = {
-  hp: 1750,             // the spec's ~155 HP, scaled for real time (see ROADMAP); × PARTY_SCALE below
+  hp: 1500,             // the spec's ~155 HP, scaled for real time (see ROADMAP); × PARTY_SCALE below
   armor: 0.3,           // stands in for AC 17
   r: 12, speed: 30,
   beat: 3.2,            // seconds between actions
@@ -22,7 +22,7 @@ const VARN = {
   arcs: { every: 3, base: 1, growEvery: 20, max: 5, varnMult: 8 },   // the sacrifice's magic bites Varn hardest
 };
 // Varn's HP by who is missing from the party (a lost hero weakens the party differently; tuned with test/varn.js).
-const PARTY_SCALE = { none: 1, raiden: 0.55, ichabod: 0.53, kieran: 0.51 };
+const PARTY_SCALE = { none: 1, raiden: 0.62, ichabod: 0.42, kieran: 0.65 };
 
 function makeVarn(x, y) {
   const gone = HERO_ORDER.filter(id => !S.party[id].alive), k = gone.length === 1 ? PARTY_SCALE[gone[0]] : gone.length ? 0.35 : PARTY_SCALE.none;
@@ -71,8 +71,8 @@ function varnBrain(v, dt) {
   if (v.beat <= 0) {
     v.beat = VARN.beat; v.bonus = VARN.bonusDelay;
     const shards = liveFoes().filter(e => e.shardOf === v).length;
+    if (v.shardCd <= 0 && shards < VARN.shards.n) return conjureShards(v);   // on cooldown, before anything else
     if (d <= VARN.blade.reach + t.r - 4) return bladeWindup(v, t);
-    if (v.shardCd <= 0 && shards < VARN.shards.n) return conjureShards(v);
     // Close instantly on someone hanging back (usually Ichabod), or on the target if they are far.
     const back = hs.filter(h => dist(v, h) > 110).sort((a, b) => a.hp - b.hp)[0];
     if (v.stepCd <= 0 && (back || d > 90)) return earthenStep(v, back || t, 'behind');

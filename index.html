@@ -28,7 +28,9 @@ body {
   font-family: var(--body);
   font-size: 18px;
   line-height: 1.5;
-  padding: 16px max(16px, env(safe-area-inset-left, 0px)) 24px max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 16px 24px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
 }
 #stage { position: relative; width: 100%; max-width: 1280px; margin: 0 auto; aspect-ratio: 16 / 9; background: #000; border: 1px solid var(--line); overflow: hidden; }
 #view { display: block; width: 100%; height: 100%; image-rendering: auto; }
@@ -36,6 +38,7 @@ body {
 #ui > * { pointer-events: auto; }
 
 /* Title and menus */
+.screen.title { background: radial-gradient(60% 50% at 50% 50%, rgba(7,6,6,.55), rgba(7,6,6,.2)); }
 .screen { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; text-align: center; padding: 24px;
   background: radial-gradient(60% 70% at 50% 60%, rgba(224,112,42,.10), transparent 70%), rgba(7,6,6,.86); }
 .screen h1 { font-family: var(--display); font-weight: 400; font-size: clamp(28px, 6vw, 64px); letter-spacing: .04em; margin: 0; color: var(--text); }
