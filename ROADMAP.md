@@ -12,6 +12,7 @@ Design: `GAME_SPEC.md` (section 2 lore is canonical; ask before any choice that 
 - Tests that press keys must wait for animation frames between presses (see `press` in `test/dialogue.js`). Otherwise two presses can land in the same frame or skip one, and lines get skipped.
 
 ## Lessons carried over from Starbreaker Saga
+- `node test/all.js <dir>` runs everything; run it before every commit.
 - A headless Playwright test for every milestone (`node test/smoke.js <dir>`, `node test/dialogue.js <dir>`, `node test/doors.js <dir>`, `node test/library.js <dir>`, `node test/combat.js <dir>`, `node test/choice.js <dir>`, `node test/varn.js <dir>`, `node test/ending.js <dir>`) that plays the slice and saves screenshots.
 - A `window.__fast`-style hook for balance bots once combat exists (milestone 5).
 - Save codes as well as localStorage.
