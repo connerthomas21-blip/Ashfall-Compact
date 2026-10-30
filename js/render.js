@@ -258,7 +258,7 @@ function drawFoe(g, e) {
 }
 // Wind-up warnings on the ground: a wedge for a strike, a filling circle for a slam.
 function drawTelegraph(g, e) {
-  if (e.dead || e.state !== 'windup' || !e.aim || e.drawTele === false) return;
+  if (e.dead || e.boss || e.state !== 'windup' || !e.aim || e.drawTele === false) return;
   const k = 1 - e.t / e.def.windup, d = e.def;
   g.save();
   if (d.aoe) {
@@ -271,6 +271,92 @@ function drawTelegraph(g, e) {
   }
   g.restore();
 }
+/* ---------- Varn ---------- */
+// Cracked basalt and packed earth, seams glowing like cooling magma, one long obsidian blade.
+function drawVarn(g, v) {
+  const r = v.r, t = G.time, sink = v.sinking != null ? Math.min(1, v.sinking / 2.2) : v.state === 'sink' ? 1 - v.t / VARN.step.sink : v.state === 'rise' ? v.t / 0.35 : 0;
+  const wind = v.state === 'windup' ? 1 - v.t / VARN.blade.windup : 0, glow = 0.55 + Math.sin(t * 2.4) * 0.2 + wind * 0.4;
+  const diamond = v.st.invuln > 0, fa = Math.atan2(v.face.y, v.face.x);
+  g.save(); g.translate(v.x, v.y); g.scale(1.45, 1.45);   // drawn larger than his footprint: he towers
+  g.fillStyle = 'rgba(0,0,0,.5)'; g.beginPath(); g.ellipse(0, r * 0.55, r * 1.25, r * 0.55, 0, 0, 7); g.fill();
+  g.beginPath(); g.rect(-r * 3, -r * 4, r * 6, r * 4.6 - sink * r * 0.6); g.clip();   // the floor swallows him from the feet up
+  g.translate(0, -r * 0.5 + sink * r * 2.6 + (v.moving ? Math.sin(v.walk * 0.6) * 0.8 : 0));
+  // blade, behind the body when facing away
+  const blade = () => {
+    const ba = fa + (wind ? -1.1 * wind : v.swing ? 0.9 : 0.5);
+    g.save(); g.rotate(ba); g.translate(r * 0.6, r * 0.3);
+    const L = VARN.blade.reach / 1.45 - 6;
+    g.fillStyle = '#060506'; g.beginPath(); g.moveTo(0, -1.4); g.lineTo(L - 4, -0.7); g.lineTo(L, 0); g.lineTo(L - 4, 0.8); g.lineTo(0, 1.4); g.closePath(); g.fill();
+    g.strokeStyle = `rgba(224,112,42,${0.35 + wind * 0.5})`; g.lineWidth = 0.5; g.beginPath(); g.moveTo(2, -1); g.lineTo(L - 3, -0.35); g.stroke();
+    g.fillStyle = '#2a2220'; g.fillRect(-3, -2.4, 3, 4.8);
+    g.restore();
+  };
+  if (v.face.y < -0.2) blade();
+  // body: a heavy basalt mass with shoulders
+  g.fillStyle = diamond ? '#9fb6ba' : '#24201f';
+  g.beginPath(); g.ellipse(0, 0, r, r * 0.85, 0, 0, 7); g.fill();
+  g.fillStyle = diamond ? '#b8cfd2' : '#302a27';
+  for (const s of [-1, 1]) { g.beginPath(); g.ellipse(s * r * 0.75, -r * 0.35, r * 0.5, r * 0.42, 0, 0, 7); g.fill(); }
+  g.strokeStyle = 'rgba(0,0,0,.7)'; g.lineWidth = 1; g.beginPath(); g.ellipse(0, 0, r, r * 0.85, 0, 0, 7); g.stroke();
+  // glowing seams
+  g.strokeStyle = diamond ? 'rgba(230,245,248,.8)' : `rgba(224,112,42,${glow})`; g.lineWidth = 0.9; g.lineCap = 'round';
+  g.beginPath();
+  g.moveTo(-r * 0.6, -r * 0.5); g.lineTo(-r * 0.15, -r * 0.05); g.lineTo(-r * 0.35, r * 0.45);
+  g.moveTo(r * 0.5, -r * 0.6); g.lineTo(r * 0.1, -r * 0.1); g.lineTo(r * 0.45, r * 0.3); g.lineTo(r * 0.2, r * 0.6);
+  g.moveTo(-r * 0.15, -r * 0.05); g.lineTo(r * 0.1, -r * 0.1);
+  g.stroke();
+  // head: a squared lump of stone with two ember slits
+  const hx = v.face.x * 2, hy = -r * 0.85 + v.face.y;
+  g.fillStyle = diamond ? '#c4d8db' : '#2c2624'; g.fillRect(hx - r * 0.38, hy - r * 0.38, r * 0.76, r * 0.66);
+  g.strokeStyle = 'rgba(0,0,0,.7)'; g.strokeRect(hx - r * 0.38, hy - r * 0.38, r * 0.76, r * 0.66);
+  if (v.face.y > -0.3) { g.fillStyle = diamond ? '#ffffff' : PAL.emberHot; g.fillRect(hx - 3 + v.face.x * 1.5, hy - 1, 2.2, 0.9); g.fillRect(hx + 0.8 + v.face.x * 1.5, hy - 1, 2.2, 0.9); }
+  if (v.face.y >= -0.2) blade();
+  if (v.st.hexed > 0) { g.strokeStyle = `rgba(224,112,42,${0.6 + Math.sin(t * 6) * 0.3})`; g.lineWidth = 0.8; g.beginPath(); g.arc(hx, hy - r * 0.8, 2.4, 0, 7); g.stroke(); }
+  if (v.flash > 0 && !diamond) { g.globalCompositeOperation = 'lighter'; g.fillStyle = `rgba(255,200,150,${v.flash * 2})`; g.beginPath(); g.ellipse(0, 0, r, r * 0.85, 0, 0, 7); g.fill(); }
+  if (diamond) { g.globalCompositeOperation = 'lighter'; g.strokeStyle = `rgba(220,240,245,${0.4 + Math.sin(t * 8) * 0.2})`; g.lineWidth = 0.6; for (let k = 0; k < 6; k++) { const a = k / 6 * 6.28 + t; g.beginPath(); g.moveTo(0, 0); g.lineTo(Math.cos(a) * r * 1.2, Math.sin(a) * r); g.stroke(); } }
+  g.restore();
+  if (v.state === 'windup' && v.sinking == null) drawBladeTelegraph(g, v);
+}
+function drawBladeTelegraph(g, v) {
+  const k = 1 - v.t / VARN.blade.windup, an = Math.atan2(v.aim.y, v.aim.x), R = VARN.blade.reach + 6;
+  g.save();
+  g.fillStyle = `rgba(224,112,42,${0.07 + k * 0.18})`; g.beginPath(); g.moveTo(v.x, v.y); g.arc(v.x, v.y, R, an - VARN.blade.arc, an + VARN.blade.arc); g.closePath(); g.fill();
+  g.strokeStyle = `rgba(255,179,107,${0.3 + k * 0.5})`; g.lineWidth = 0.8; g.beginPath(); g.arc(v.x, v.y, R * k, an - VARN.blade.arc, an + VARN.blade.arc); g.stroke();
+  g.restore();
+}
+function drawShard(g, s) {
+  const fade = s.dead ? 1 - s.deadT / 0.8 : 1, a = Math.atan2(s.face.y, s.face.x);
+  g.save(); g.translate(s.x, s.y - 6); g.rotate(a); g.globalAlpha = Math.max(0, fade);
+  g.fillStyle = '#050405'; g.beginPath(); g.moveTo(5, 0); g.lineTo(0, -1.8); g.lineTo(-3, 0); g.lineTo(0, 1.8); g.closePath(); g.fill();
+  g.strokeStyle = s.dartT > 0 ? PAL.emberHot : 'rgba(224,112,42,.7)'; g.lineWidth = 0.5; g.stroke();
+  if (s.flash > 0) { g.fillStyle = `rgba(255,240,220,${s.flash * 4})`; g.fill(); }
+  g.restore();
+  g.fillStyle = 'rgba(0,0,0,.3)'; g.beginPath(); g.ellipse(s.x, s.y + 1, 2.5, 1, 0, 0, 7); g.fill();
+}
+function drawCracksAndArcs(g) {
+  for (const c of G.cracks || []) {
+    const k = 1 - c.t / VARN.crack.windup;
+    g.strokeStyle = `rgba(224,112,42,${0.3 + k * 0.5})`; g.lineWidth = 0.8;
+    g.beginPath(); g.arc(c.x, c.y, VARN.crack.r, 0, 7); g.stroke();
+    g.beginPath(); g.moveTo(c.x - VARN.crack.r * k, c.y - 2); g.lineTo(c.x, c.y + 1); g.lineTo(c.x + VARN.crack.r * k, c.y - 1); g.stroke();
+    g.fillStyle = `rgba(224,112,42,${k * 0.15})`; g.beginPath(); g.arc(c.x, c.y, VARN.crack.r, 0, 7); g.fill();
+  }
+  for (const a of G.arcs || []) {
+    if (a.t <= 0) continue;
+    g.strokeStyle = `rgba(255,179,107,${a.t / 0.35})`; g.lineWidth = 0.9; g.beginPath(); g.moveTo(a.from.x, a.from.y);
+    for (let i = 1; i <= 5; i++) { const u = i / 5; g.lineTo(lerp(a.from.x, a.x, u) + (i < 5 ? rnd(-4, 4) : 0), lerp(a.from.y, a.y, u) + (i < 5 ? rnd(-4, 4) : 0)); }
+    g.stroke();
+  }
+}
+// Boss bar across the top.
+function drawBossBar(g, v) {
+  const w = 200, x = W / 2 - w / 2, y = 30, k = Math.max(0, v.hp / v.maxHp);
+  g.font = '9px "IM Fell English SC", Georgia, serif'; g.textAlign = 'center'; g.fillStyle = PAL.bone; g.fillText('Varn', W / 2, y - 4); g.textAlign = 'left';
+  g.fillStyle = 'rgba(0,0,0,.75)'; g.fillRect(x - 1, y - 1, w + 2, 5);
+  g.fillStyle = v.st.invuln > 0 ? '#bcd3d6' : '#b5532e'; g.fillRect(x, y, w * k, 3);
+  g.fillStyle = 'rgba(216,205,180,.5)'; g.fillRect(x + w / 2, y - 1, 0.6, 5);   // bloodied mark
+}
+
 function drawShots(g) {
   for (const s of G.shots || []) {
     g.strokeStyle = 'rgba(224,112,42,.5)'; g.lineWidth = 2; g.beginPath(); g.moveTo(s.x - s.vx * 0.03, s.y - s.vy * 0.03); g.lineTo(s.x, s.y); g.stroke();
@@ -328,6 +414,7 @@ function lightsInView() {
     out.push({ x: l.x, y: l.y, r: l.r * f, color: l.color, warm: l.torch ? 0.22 : l.fissure ? 0.3 : 0.08 });
   }
   for (const a of G.actors) if (a.def.light) out.push({ x: a.x, y: a.y - 3, r: a.def.light, color: a.def.lightColor, warm: a.def.lightColor ? 0.14 : 0 });
+  for (const e of G.enemies || []) if (e.boss && !e.dead) out.push({ x: e.x, y: e.y - 6, r: 54, color: e.st.invuln > 0 ? '#cfe3e6' : PAL.ember, warm: 0.22 });
   for (const sh of G.shots || []) out.push({ x: sh.x, y: sh.y, r: 26, color: PAL.ember, warm: 0.25 });
   if (G.scene.lights) out.push(...G.scene.lights());
   return out.filter(l => l.x + l.r > G.cam.x && l.x - l.r < G.cam.x + W && l.y + l.r > G.cam.y && l.y - l.r < G.cam.y + H);
@@ -378,6 +465,7 @@ function draw() {
   for (const l of room.lights) if (l.torch) drawTorch(ctx, l);
   if (G.scene.drawUnder) G.scene.drawUnder(ctx);
   for (const e of G.enemies || []) drawTelegraph(ctx, e);
+  drawCracksAndArcs(ctx);
   for (const h of heroes()) if (h.st && h.st.guard) drawGuard(ctx, h);
   [...G.actors, ...(G.enemies || [])].sort((a, b) => a.y - b.y).forEach(a => a.id === 'foe' ? (a.draw || drawFoe)(ctx, a) : drawActor(ctx, a));
   if (G.scene.drawOver) G.scene.drawOver(ctx);
@@ -430,6 +518,7 @@ function drawHUD(g) {
     }
   });
   if (G.party && (G.combat || (G.enemies || []).some(e => !e.dead))) drawSkillBar(g);
+  const boss = (G.enemies || []).find(e => e.boss && !e.dead); if (boss) drawBossBar(g, boss);
   if (G.wipe) {
     g.fillStyle = `rgba(0,0,0,${Math.min(0.85, G.wipe.t / 1.5)})`; g.fillRect(0, 0, W, H);
     g.font = '12px "IM Fell English SC", Georgia, serif'; g.textAlign = 'center'; g.fillStyle = PAL.bone;

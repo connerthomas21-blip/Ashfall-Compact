@@ -80,7 +80,9 @@ function cycleLead(dir = 1) {
   setLead(live[(live.indexOf(S.lead) + dir + live.length) % live.length]);
 }
 
+// Steering: straight at the target when the way is clear, otherwise along a grid path around walls and the fissure.
 function stepToward(a, tx, ty, speed, dt) {
+  if (!losClear(a.x, a.y, tx, ty, a.r)) { const w = navTo(a, tx, ty); if (w) { tx = w.x; ty = w.y; } }
   const dx = tx - a.x, dy = ty - a.y, d = Math.hypot(dx, dy);
   if (d < 0.5) { a.moving = false; return; }
   const s = Math.min(d, speed * slowAt(a) * dt);
@@ -94,13 +96,14 @@ function updateParty(dt) {
   for (const id of HERO_ORDER) if (hit('Digit' + HEROES[id].key, 'Numpad' + HEROES[id].key)) setLead(id);
   if (hit('Tab')) cycleLead(keys.has('ShiftLeft') || keys.has('ShiftRight') ? -1 : 1);
 
-  if (G.combat || liveFoes().length) leaderCombatKeys(L);
+  if (G.autopilot && G.combat && alive(L)) { allyAI(L, dt); L.walk += L.moving ? dt * 10 : 0; }   // tests and balance bots
+  else if (G.combat || liveFoes().length) leaderCombatKeys(L);
   // Leader movement
-  const stuck = !alive(L) || L.st.prone > 0 || L.dashing;
+  const stuck = !alive(L) || L.st.prone > 0 || L.dashing || (G.autopilot && G.combat);
   let ix = (held('KeyD', 'ArrowRight') ? 1 : 0) - (held('KeyA', 'ArrowLeft') ? 1 : 0);
   let iy = (held('KeyS', 'ArrowDown') ? 1 : 0) - (held('KeyW', 'ArrowUp') ? 1 : 0);
   const m = stuck ? 0 : Math.hypot(ix, iy);
-  if (!L.dashing) L.moving = m > 0;
+  if (!L.dashing && !(G.autopilot && G.combat)) L.moving = m > 0;
   if (m) {
     ix /= m; iy /= m;
     const sp = L.def.speed * slowAt(L) * dt;
@@ -131,6 +134,40 @@ function hideWill(w, dt) {
   if (d > 90) { w.moving = false; return; }
   const sp = G.room.spawns.w || w, ax = w.x + (w.x - n.x) / (d || 1) * 40 + (sp.x - w.x) * 0.2, ay = w.y + (w.y - n.y) / (d || 1) * 40 + (sp.y - w.y) * 0.2;
   stepToward(w, ax, ay, w.def.speed, dt);
+}
+
+/* ---------- Pathfinding ---------- */
+function losClear(x0, y0, x1, y1, r) {
+  const d = Math.hypot(x1 - x0, y1 - y0), n = Math.ceil(d / 4);
+  for (let i = 1; i <= n; i++) { const u = i / n; if (circleHits(G.room, lerp(x0, x1, u), lerp(y0, y1, u), r * 0.9)) return false; }
+  return true;
+}
+const walkable = (x, y) => !SOLID.has(tileAt(G.room, x, y));
+// Breadth-first search on tiles (8 directions, no corner cutting), cached per actor for a moment.
+function navTo(a, tx, ty) {
+  const sx = Math.floor(a.x / TILE), sy = Math.floor(a.y / TILE);
+  let gx = Math.floor(tx / TILE), gy = Math.floor(ty / TILE);
+  if (!walkable(gx, gy)) { const n = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]].map(([dx, dy]) => [gx + dx, gy + dy]).find(([x, y]) => walkable(x, y)); if (!n) return null; [gx, gy] = n; }
+  const nav = a.nav;
+  if (!nav || nav.gx !== gx || nav.gy !== gy || G.time - nav.t > 0.5 || nav.room !== G.room) {
+    const W0 = G.room.w, prev = new Map(), start = sx + sy * W0, goal = gx + gy * W0, q = [start]; prev.set(start, -1);
+    while (q.length && !prev.has(goal)) {
+      const c = q.shift(), cx = c % W0, cy = (c - cx) / W0;
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]]) {
+        const nx = cx + dx, ny = cy + dy, k = nx + ny * W0;
+        if (prev.has(k) || !walkable(nx, ny) || (dx && dy && (!walkable(cx + dx, cy) || !walkable(cx, cy + dy)))) continue;
+        prev.set(k, c); q.push(k);
+      }
+    }
+    const path = [];
+    if (prev.has(goal)) for (let k = goal; k !== start && k !== -1; k = prev.get(k)) path.unshift({ x: (k % W0 + 0.5) * TILE, y: (Math.floor(k / W0) + 0.5) * TILE });
+    a.nav = { gx, gy, t: G.time, path, room: G.room };
+  }
+  const path = a.nav.path; if (!path.length) return null;
+  // Head for the furthest waypoint still in sight.
+  let w = path[0];
+  for (const p of path) { if (losClear(a.x, a.y, p.x, p.y, a.r)) w = p; else break; }
+  return w;
 }
 
 // Push overlapping actors apart (the leader yields least).

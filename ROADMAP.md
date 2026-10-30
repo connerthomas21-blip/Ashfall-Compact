@@ -12,7 +12,7 @@ Design: `GAME_SPEC.md` (section 2 lore is canonical; ask before any choice that 
 - Tests that press keys must wait for animation frames between presses (see `press` in `test/dialogue.js`). Otherwise two presses can land in the same frame or skip one, and lines get skipped.
 
 ## Lessons carried over from Starbreaker Saga
-- A headless Playwright test for every milestone (`node test/smoke.js <dir>`, `node test/dialogue.js <dir>`, `node test/doors.js <dir>`, `node test/library.js <dir>`, `node test/combat.js <dir>`, `node test/choice.js <dir>`) that plays the slice and saves screenshots.
+- A headless Playwright test for every milestone (`node test/smoke.js <dir>`, `node test/dialogue.js <dir>`, `node test/doors.js <dir>`, `node test/library.js <dir>`, `node test/combat.js <dir>`, `node test/choice.js <dir>`, `node test/varn.js <dir>`) that plays the slice and saves screenshots.
 - A `window.__fast`-style hook for balance bots once combat exists (milestone 5).
 - Save codes as well as localStorage.
 
@@ -25,6 +25,7 @@ Design: `GAME_SPEC.md` (section 2 lore is canonical; ask before any choice that 
 - `js/dialogue.js`: dialogue engine with nodes, choices voiced by a named hero or the leader, flag conditions (`has`, `not`, `eq`, `alive`, `will`), hub revisits (`again`), and `lintDialogue`
 - `js/audio.js`: WebAudio ambience (`ambience(kind)` per scene via `amb`), `sfx(name)` hooks, mute
 - `js/combat.js`: tuning (`TUNE`, `FOES`), damage and statuses, abilities (`SKILL_FN`), enemy brain, ally AI (`AI`), encounters (snapshot and restore), effects
+- `js/varn.js`: the boss: tuning (`VARN`, `PARTY_SCALE`), his brain, shards, cracks, arcs, the ending
 - `js/scenes.js`: `roomScene` helper, `narrate`, one entry per story scene, the doors puzzle (`CLUES`, `speakName`, `drawDoors`), Thyken (`drawThyken`)
 - `js/ui.js`: DOM overlay (title, menu, story text box), frozen-world keys, boot
 
@@ -59,7 +60,17 @@ WASD or arrows move. 1/2/3 or Tab (Shift+Tab goes back) changes hero. J attacks,
    - Permanent loss (`choiceMade`): the hero's `S.party[id].alive` becomes false and they are removed from the party for the rest of the save. Will's loss sets `S.will = false`.
 
    Placeholder scenes `varn` and `after` stand in for milestones 7 and 8. `node test/choice.js <dir>` plays release, sacrificing Will, and sacrificing a hero (including a reload check).
-7. Varn: Obsidian Blade, Shard-Blades, Earthen Step, Diamond Skin, the mid-fight terrain clock, `varn_alive`.
+7. **Varn** (done, `js/varn.js`): he acts on beats, with an action every 3.2s and a free bonus beat 1s later.
+   - Obsidian Blade: a 40px wedge with a 1.15s glowing wind-up that hits everyone in it for 32 to 36. That nearly downs Ichabod, and two hits drop anyone. He keeps pressing whoever he last hit.
+   - Shard-Blades: three orbiting shards with 10 HP each. They dart at anyone who comes close or tries to get far away.
+   - Earthen Step: he sinks and rises behind whoever hangs back, and often uses it right after a blade hit lands.
+   - Bonus beats: a shard dart, a floor crack (a telegraphed ring that knocks heroes prone), or a short shift.
+   - Diamond Skin: once, at half HP, he takes nothing for 6s, with a pale crystal look, a chime and "Diamond" pop-ups.
+   - From half HP, residual arcs strike everyone every 3s and grow over time. Varn takes 8× the arc damage, so the clock cuts both ways.
+   - At 0 HP the floor swallows him and sets `varn_alive`. The stair stays blocked by rock until then.
+   - The ally AI sidesteps the blade after a reaction delay and not every time (75%). Movement uses grid pathfinding around the fissure and walls (`navTo`).
+
+   **About the spec's numbers.** "~155 HP" is a tabletop figure. In real time the heroes act about every second, not every six, so a straight conversion gives a fight of 30 to 40 seconds. Varn has 1,750 HP against the full party (×0.51 to 0.55 when a hero was sacrificed, depending on who). The autopilot bot wins about a third to two thirds of fights in 60 to 130s. `node test/varn.js <dir> [n]` runs the mechanics checks, screenshots and the balance table.
 8. Ending, the end card, and save/load polish.
 9. Polish: lighting, audio hooks, tuning Varn with a bot (hard but winnable with 3 heroes, and with 2).
 

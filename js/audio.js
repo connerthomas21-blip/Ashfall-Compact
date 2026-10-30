@@ -95,3 +95,10 @@ Object.assign(SFX, {
   dash: () => noise(AU.white, { filter: 'highpass', freq: 1500, gain: 0.04, dur: 0.18, attack: 0.02 }),
   drink: () => SFX.drip(),
 });
+
+Object.assign(SFX, {
+  windup: () => noise(AU.brown, { filter: 'bandpass', freq: 200, q: 3, gain: 0.3, dur: 1.1, attack: 0.9 }),
+  blade: () => { noise(AU.white, { filter: 'bandpass', freq: 700, q: 0.7, gain: 0.14, dur: 0.3, attack: 0.005 }); SFX.thud(); },
+  diamond: () => { for (const f of [880, 1320, 1760]) { const a = AU.ctx, o = a.createOscillator(), g = a.createGain(), t = a.currentTime; o.type = 'sine'; o.frequency.value = f; g.gain.setValueAtTime(0.05, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 1.6); o.connect(g); g.connect(AU.master); o.start(t); o.stop(t + 1.7); } },
+  arc: () => noise(AU.white, { filter: 'highpass', freq: 2200, gain: 0.05, dur: 0.3, attack: 0.01 }),
+});

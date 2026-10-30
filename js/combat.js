@@ -63,8 +63,8 @@ function spawnFoes(list, aggro = false) {   // list: [{ kind, x, y }]
 
 /* ---------- Damage ---------- */
 function hurt(u, amount, o = {}) {
-  if (!u || u.dead || u.down || amount <= 0) return 0;
-  if (u.st.invuln > 0) { floatText(u, 'Nothing', PAL.boneDim); return 0; }
+  if (!u || u.dead || u.down || amount <= 0 || u.sinking != null) return 0;
+  if (u.st.invuln > 0) { if (!o.arc && !(u.quietT > G.time)) { u.quietT = G.time + 0.7; floatText(u, u.boss ? 'Diamond' : 'Nothing', u.boss ? '#cfe3e6' : PAL.boneDim); } return 0; }
   if (u.st.guard && u.st.guard.t > 0 && alive(u.st.guard.by) && u.st.guard.by !== u) {   // Shield Ally: Raiden takes it instead
     const by = u.st.guard.by; sfx('thud');
     return hurt(by, amount * TUNE.shield.take, { ...o, guarded: true });
@@ -73,7 +73,7 @@ function hurt(u, amount, o = {}) {
   if (u.st.hexed > 0) d *= TUNE.hex.mult;
   if (u.st.prone > 0) d *= 1.25;
   if (o.aoe && u.id === 'kieran') d *= 0.5;                       // Evasion
-  d *= 1 - (u.def.armor ?? (TUNE.heroes[u.id] || {}).armor ?? 0);
+  if (!o.pure) d *= 1 - (u.def.armor ?? (TUNE.heroes[u.id] || {}).armor ?? 0);
   d = Math.max(1, Math.round(d));
   u.hp -= d; u.flash = 0.14;
   floatText(u, d, u.id === 'foe' || u.boss ? PAL.bone : '#e06a5a', o.big);
@@ -315,7 +315,24 @@ function allyAI(h, dt) {
   if (!alive(h) || h.st.prone > 0 || h.dashing) { h.moving = false; return; }
   if (h.queued) { if (useSkill(h, h.queued)) h.queued = null; }
   const foes = liveFoes().filter(e => e.aggro); if (!foes.length) return false;
+  if (h.hp / h.maxHp < 0.3 && S.inv.draught > 0 && !h.drinkCd) drinkDraught(h);
+  if (dodgeBlade(h, dt)) return true;
   AI[h.id](h, dt, foes);
+  return true;
+}
+// Allies see Varn's wind-up and step out of the wedge, after a human-ish reaction time and not every time.
+function dodgeBlade(h, dt) {
+  const v = liveFoes().find(e => e.boss && e.state === 'windup' && e.aim); if (!v) return false;
+  const dx = h.x - v.x, dy = h.y - v.y, d = Math.hypot(dx, dy) || 1;
+  let da = Math.abs(Math.atan2(dy, dx) - Math.atan2(v.aim.y, v.aim.x)); if (da > Math.PI) da = 2 * Math.PI - da;
+  const inWedge = d <= VARN.blade.reach + h.r + 10 && da <= VARN.blade.arc + 0.35;
+  if (h.dodgeFor === v.windupId && h.willDodge && !inWedge) { h.moving = false; return true; }   // clear: hold here until the swing lands
+  if (!inWedge) return false;
+  if (v.t > VARN.blade.windup - 0.45) return false;                         // still reacting
+  if (h.dodgeFor !== v.windupId) { h.dodgeFor = v.windupId; h.willDodge = Math.random() < (TUNE.dodge ?? 0.75); }
+  if (!h.willDodge || h.st.guard) return false;
+  const side = { x: -v.aim.y, y: v.aim.x }, s = (dx * side.x + dy * side.y) >= 0 ? 1 : -1;
+  stepToward(h, h.x + (side.x * s + dx / d) * 30, h.y + (side.y * s + dy / d) * 30, h.def.speed * 1.2, dt);
   return true;
 }
 const AI = {

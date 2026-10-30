@@ -280,10 +280,41 @@ function choiceMade(act) {
   }
 }
 
-/* ---------- Scene 6: Varn (milestone 7) ---------- */
+/* ---------- Scene 6: Varn (sacrifice path only) ----------
+  The broken chamber at the base of the stair: live fissure, rubble, the stair blocked. See js/varn.js.
+*/
+const VARN_SPAWN = { x: 20.5 * TILE, y: 8.5 * TILE };
 SCENES.varn = roomScene('deep', {
   amb: 'deep',
-  enter() { narrate([{ text: 'Varn rises out of the floor. (The fight is built in milestone 7.)' }], () => go('after')); },
+  enter() {
+    G.varnStart = true;
+    if (flag('varn_alive')) return void go('after');
+    narrate([
+      { text: 'He is taller than the doors were. Cracked basalt and packed earth, held together by seams that glow like cooling magma, and in one hand a blade of black glass as long as a man.' },
+      { text: 'Rock slides down across the stair behind you and stays there. There is only this room now.' },
+      { text: 'Varn does not speak. He looks at the place where Thyken sat, and then he looks at you.' },
+    ], () => G.enemies.push(makeVarn(VARN_SPAWN.x, VARN_SPAWN.y)));
+  },
+  respawn() { G.cracks = []; G.arcs = []; G.enemies.push(makeVarn(VARN_SPAWN.x, VARN_SPAWN.y)); },
+  update(dt) {
+    updateCracks(dt); updateVarnSinking(dt);
+    for (const a of G.arcs || []) a.t -= dt;
+  },
+  onClear() {
+    narrate([
+      { text: 'Varn goes down onto one knee, and the floor opens under him like water. He does not fall. He is taken. The earth closes over his shoulders, his head, the last red line of a seam, and then it is only floor again, warm to the touch.' },
+      { text: 'He is not dead. You know it the way you know the ground is under your feet. He has only gone back to where he came from, to wait.' },
+      { text: 'The rock on the stair shifts and slides aside, and the way up is open.' },
+    ], () => go('after'));
+  },
+  // The stair is blocked by fallen rock for the whole fight.
+  drawUnder(g) {
+    if (flag('varn_alive')) return;
+    G.room.grid.forEach((row, y) => row.forEach((c, x) => {
+      if (c !== 'U') return;
+      for (let k = 0; k < 3; k++) { g.fillStyle = ['#433830', '#4f4237', '#3a3029'][k]; g.beginPath(); g.ellipse(x * TILE + 4 + k * 4, y * TILE + 6 + (k % 2) * 4, 5, 4, k, 0, 7); g.fill(); }
+    }));
+  },
 });
 
 /* ---------- Scene 7: The Quiet After (milestone 8) ---------- */
