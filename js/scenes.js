@@ -22,6 +22,7 @@ function roomScene(mapId, hooks = {}) {
       const L = leader(), t = triggerUnder(L);
       if (t && t !== G.lastTrigger && hooks.onTrigger) hooks.onTrigger(t);
       G.lastTrigger = t;
+      if (G.sceneId !== this.id) return;   // the trigger moved us to another scene
       const it = nearestInteract(L);
       G.prompt = it ? 'E  Examine' : null;
       if (it && hit('KeyE') && hooks.onInteract) hooks.onInteract(it);
@@ -238,18 +239,58 @@ SCENES.thyken = roomScene('deep', {
   enter() {
     const k = G.room.triggers.find(t => t.kind === 'K');
     G.thyken = { x: k.x, y: k.y + 2 };
+    if (flag('released_thyken')) openStair();
   },
   onInteract(t) {
     if (t.kind !== 'K') return;
-    if (flag('thyken_heard')) {
-      narrate([{ who: 'Thyken', text: 'Take as long as you need.' }, { text: 'The Choice is built in milestone 6.' }]);
-      return;
-    }
-    runDialogue('thyken');
+    if (flag('released_thyken') || flag('sacrificed_thyken')) return;
+    if (flag('thyken_heard')) return runDialogue('choice', choiceMade);
+    runDialogue('thyken', () => runDialogue('choice', choiceMade));
   },
   lights: () => [{ x: G.thyken.x, y: G.thyken.y - 4, r: 30, color: PAL.bone, warm: 0.05 }],
-  drawUnder: g => drawThyken(g, G.thyken),
+  drawUnder: g => { if (!flag('released_thyken') && !flag('sacrificed_thyken')) drawThyken(g, G.thyken); },
+  onTrigger(t) { if (t.kind === 'X') go('after'); },
 });
+
+// After the release, the stair up becomes the way out.
+function openStair() {
+  G.room.grid.forEach((row, y) => row.forEach((c, x) => {
+    if (c === 'U') { row[x] = 'X'; G.room.triggers.push({ kind: 'X', x: (x + 0.5) * TILE, y: (y + 0.5) * TILE, tx: x, ty: y }); }
+  }));
+  G.room.layer = null;
+}
+
+// The Choice's consequences. The permanent-loss rule lives here: a sacrificed hero is gone for the rest of the save.
+function choiceMade(act) {
+  if (act === 'release') {
+    openStair();
+    burst(G.thyken.x, G.thyken.y, PAL.obsidian, 20); shake(1.5, 0.3); sfx('doors'); save();
+    narrate([{ text: 'The stair is open behind you. There is nothing left to do down here.' }]);
+  }
+  if (act === 'sacrifice') {
+    const h = S.flags.sacrificed_hero;
+    if (h) {
+      S.party[h].alive = false;
+      const a = G.party[h]; G.actors = G.actors.filter(x => x !== a); delete G.party[h];
+      if (S.lead === h) S.lead = HERO_ORDER.find(id => G.party[id]);
+    }
+    if (S.flags.sacrificed_will) { S.will = false; G.actors = G.actors.filter(x => x !== G.will); G.will = null; }
+    shake(2, 0.6); sfx('doors'); save();
+    go('varn');
+  }
+}
+
+/* ---------- Scene 6: Varn (milestone 7) ---------- */
+SCENES.varn = roomScene('deep', {
+  amb: 'deep',
+  enter() { narrate([{ text: 'Varn rises out of the floor. (The fight is built in milestone 7.)' }], () => go('after')); },
+});
+
+/* ---------- Scene 7: The Quiet After (milestone 8) ---------- */
+SCENES.after = {
+  enter() { G.room = null; narrate([{ text: 'The Quiet After is built in milestone 8.' }]); },
+  update() {}, draw() {},
+};
 
 // Thyken: seated, robed, bound at wrists and throat by obsidian chains running to rings in the floor.
 function drawThyken(g, p) {

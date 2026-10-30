@@ -12,7 +12,7 @@ Design: `GAME_SPEC.md` (section 2 lore is canonical; ask before any choice that 
 - Tests that press keys must wait for animation frames between presses (see `press` in `test/dialogue.js`). Otherwise two presses can land in the same frame or skip one, and lines get skipped.
 
 ## Lessons carried over from Starbreaker Saga
-- A headless Playwright test for every milestone (`node test/smoke.js <dir>`, `node test/dialogue.js <dir>`, `node test/doors.js <dir>`, `node test/library.js <dir>`, `node test/combat.js <dir>`) that plays the slice and saves screenshots.
+- A headless Playwright test for every milestone (`node test/smoke.js <dir>`, `node test/dialogue.js <dir>`, `node test/doors.js <dir>`, `node test/library.js <dir>`, `node test/combat.js <dir>`, `node test/choice.js <dir>`) that plays the slice and saves screenshots.
 - A `window.__fast`-style hook for balance bots once combat exists (milestone 5).
 - Save codes as well as localStorage.
 
@@ -53,7 +53,12 @@ WASD or arrows move. 1/2/3 or Tab (Shift+Tab goes back) changes hero. J attacks,
    - Scene 1 is now the tail of the fight, and Will hides during combat. Each wrong name at the doors wakes 2 to 4 undead from the passage behind.
 
    Tuning lives in `TUNE` and `FOES`. `node test/combat.js <dir>` plays the opening fight (about 10s, the party ends at roughly 85% / 100% / 50% HP), checks every ability, a wipe and restart, a pause order, and the doors' undead.
-6. The Choice: both branches and the permanent-loss rule.
+6. **The Choice** (done): once Thyken has been heard, going back to him opens a full-page decision (`screen: true` dialogues show every paragraph at once, with no timer). "Not yet" lets you walk away.
+   - Release: a confirmation, then the chains shatter, Thyken leaves, and the stair becomes the way out (`released_thyken`).
+   - Sacrifice: Will volunteers if present and each living hero gives a reaction line, or any hero offers themselves, with a "cannot be undone" confirmation. The rite ends with Thyken's line from the spec, then Varn rises (`sacrificed_thyken` + `sacrificed_will` or `sacrificed_hero`).
+   - Permanent loss (`choiceMade`): the hero's `S.party[id].alive` becomes false and they are removed from the party for the rest of the save. Will's loss sets `S.will = false`.
+
+   Placeholder scenes `varn` and `after` stand in for milestones 7 and 8. `node test/choice.js <dir>` plays release, sacrificing Will, and sacrificing a hero (including a reload check).
 7. Varn: Obsidian Blade, Shard-Blades, Earthen Step, Diamond Skin, the mid-fight terrain clock, `varn_alive`.
 8. Ending, the end card, and save/load polish.
 9. Polish: lighting, audio hooks, tuning Varn with a bot (hard but winnable with 3 heroes, and with 2).

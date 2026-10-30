@@ -322,3 +322,116 @@ const LOOT = [
     lines: [{ text: 'A small book of prayers for the dying. Its margins are full of a dozen different hands, each adding its own. Some of the prayers are to the Omnisiah. Some are older.' },
             { who: 'raiden', text: 'I know some of these. Not all of them.', if: { alive: 'raiden' } }] },
 ];
+
+/* ---------- Scene 5: The Choice ----------
+  A full-screen page (screen: true): every block of a node is shown at once, no timer.
+  Flags: released_thyken, or sacrificed_thyken plus one of sacrificed_will / sacrificed_hero (= hero id).
+  The permanent loss itself is applied by the scene (js/scenes.js) when the conversation ends with act 'sacrifice'.
+*/
+DIALOGUES.choice = {
+  screen: true,
+  start: 'open',
+  nodes: {
+    open: {
+      lines: [
+        { text: 'Thyken does not watch you decide. He has turned his face toward the fissure, and its light moves on him slowly, the way light moves on the bed of a river.' },
+        { text: 'Nobody hurries you. Above, the Library settles and is quiet. Somewhere far overhead the Inquisition is walking toward Olgareth, a day closer than it was, and nothing you decide down here will make it walk any slower.' },
+        { text: 'There are two ways out of this room that matter.' },
+      ],
+      choices: [
+        { text: 'Break the chains. Let him go.', go: 'release_confirm', repeat: true },
+        { text: 'Finish what Varn began. Give Thyken to the earth, and one more life with him.', go: 'sacrifice', repeat: true },
+        { text: 'Not yet.', go: 'later', repeat: true },
+      ],
+    },
+    later: { lines: [{ text: 'You step away. Thyken does not turn his head. He said he was not going anywhere, and he meant it.' }], end: true },
+
+    release_confirm: {
+      lines: [
+        { text: 'If the chains break, Thyken walks out, and Varn\'s offering walks out with him. Kael\'Vahr stays as he is, half awake. Varn goes on looking for another way, and he is patient.' },
+        { text: 'You will have bought time, and nothing else.' },
+      ],
+      choices: [
+        { text: 'Break them.', go: 'release', repeat: true },
+        { text: 'Wait.', go: 'open', repeat: true },
+      ],
+    },
+    release: {
+      set: { released_thyken: true },
+      act: 'release',
+      lines: [
+        { text: 'The black glass is warm, and it hums in the hand like something alive. When it breaks, it breaks all at once, every chain together, with a sound like a bell cracking as it is struck.' },
+        { text: 'Thyken stands. It takes him a long time. When he is all the way up he is taller than you thought he would be.' },
+        { who: 'Thyken', text: 'Time, then. Spend it well. It is the only thing anyone has ever bought from a god.' },
+        { who: 'Thyken', text: 'Do not look for me. You would not find me, and for a while, neither will he.' },
+        { text: 'He goes up the stair without a light. You hear him climbing for a long time, and then you don\'t.' },
+      ],
+      end: true,
+    },
+
+    sacrifice: {
+      lines: [
+        { text: 'Thyken\'s life, and one more. He said it plainly, and he does not say it again.' },
+        { text: 'Will has set his lantern down on the stone. None of you saw him do it.', if: { will: true } },
+        { who: 'will', text: 'Let it be me.', if: { will: true } },
+        { who: 'will', text: 'I have been thinking about it since he said it. I am the only one here who is no use in a fight. My wife is in Olgareth, with the Inquisition in front of her and the god of the mountain underneath her. If one life buys her a longer sleep from the earth, I would like it to be mine. I would like to have bought her something.', if: { will: true } },
+        { text: 'There is no one down here to give but yourselves.', if: { will: false } },
+      ],
+      choices: [
+        { text: 'Let Will go.', go: 'will_react', if: { will: true }, repeat: true },
+        { by: 'raiden', text: 'It should be me.', go: 'offer_raiden', repeat: true },
+        { by: 'ichabod', text: 'It should be me.', go: 'offer_ichabod', repeat: true },
+        { by: 'kieran', text: 'It should be me.', go: 'offer_kieran', repeat: true },
+        { text: 'Wait. Not like this.', go: 'open', repeat: true },
+      ],
+    },
+    will_react: {
+      lines: [
+        { who: 'raiden', text: 'The Church would call this a sin. I don\'t know what I call it. I know I will remember your name, Will, which is more than the Church would do for you.', if: { alive: 'raiden' } },
+        { who: 'ichabod', text: 'She is listening. Dinas. She is pleased by this. I want you to know that I am not.', if: { alive: 'ichabod' } },
+        { who: 'kieran', text: 'Your wife. Somebody should be able to tell her properly. What do I say?', if: { alive: 'kieran' } },
+        { who: 'will', text: 'Tell her I went down with a lantern. She will know the rest.', if: { alive: 'kieran' } },
+      ],
+      choices: [
+        { text: 'Let him.', go: 'sac_will', repeat: true },
+        { text: 'No. Not him.', go: 'sacrifice', repeat: true },
+      ],
+    },
+    offer_raiden: {
+      lines: [
+        { who: 'raiden', text: 'My faith has told me what was right my whole life, and it lied to me about this. Let me do one thing because I chose it, and not because I was told.' },
+        { text: 'This cannot be undone. Raiden will not walk out of this room.' },
+      ],
+      choices: [{ text: 'Let it be done.', go: 'sac_raiden', repeat: true }, { text: 'No.', go: 'sacrifice', repeat: true }],
+    },
+    offer_ichabod: {
+      lines: [
+        { who: 'ichabod', text: 'Dinas has had her hand on me since the Tome. If I go into the earth, her hand goes with me, and she has one less warlock to work through. That seems worth something. It might be the only thing I do that she did not want.' },
+        { text: 'This cannot be undone. Ichabod will not walk out of this room.' },
+      ],
+      choices: [{ text: 'Let it be done.', go: 'sac_ichabod', repeat: true }, { text: 'No.', go: 'sacrifice', repeat: true }],
+    },
+    offer_kieran: {
+      lines: [
+        { who: 'kieran', text: 'Somebody tell my sister. Don\'t tell her it was brave. Tell her it was quick, and that I wasn\'t working for anyone when I did it.' },
+        { text: 'This cannot be undone. Kieran will not walk out of this room.' },
+      ],
+      choices: [{ text: 'Let it be done.', go: 'sac_kieran', repeat: true }, { text: 'No.', go: 'sacrifice', repeat: true }],
+    },
+    sac_will:    { set: { sacrificed_thyken: true, sacrificed_will: true }, next: 'rite', lines: [{ text: 'Will picks his lantern up again before he goes to stand beside the old man. He does not seem to want to be in the dark for it.' }] },
+    sac_raiden:  { set: { sacrificed_thyken: true, sacrificed_hero: 'raiden' }, next: 'rite', lines: [{ text: 'Raiden unbuckles his sword and lays it on the stone, carefully, the way you put down something you mean to come back for. Then he goes to stand beside the old man.' }] },
+    sac_ichabod: { set: { sacrificed_thyken: true, sacrificed_hero: 'ichabod' }, next: 'rite', lines: [{ text: 'Ichabod hands the Tome to no one in particular and goes to stand beside the old man. The book is cold the moment it leaves his hands.' }] },
+    sac_kieran:  { set: { sacrificed_thyken: true, sacrificed_hero: 'kieran' }, next: 'rite', lines: [{ text: 'Kieran leaves his knives where he was standing, both of them, side by side. Then he goes to stand beside the old man.' }] },
+    rite: {
+      act: 'sacrifice',
+      lines: [
+        { text: 'There is no ceremony. Thyken tells you what to do, and his voice is calm the whole time, and you do it.' },
+        { text: 'The chains go first. They do not break. They sink, link by link, into the floor, and the floor takes them, and then it takes more.' },
+        { who: 'Thyken', text: 'Remember her name. Remember all of them. That is the whole of my religion, and now it is yours.' },
+        { text: 'The fissure flares once, white at its heart, and narrows by the width of a hand. Far below, something enormous turns over in its sleep, and is still.' },
+        { text: 'Then the floor on the far side of the chamber splits open, and something climbs out of it.' },
+      ],
+      end: true,
+    },
+  },
+};

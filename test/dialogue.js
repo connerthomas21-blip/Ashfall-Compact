@@ -30,7 +30,7 @@ const out = process.argv[2] || '.';
     let shot = 0;
     for (let step = 0; step < 400; step++) {
       const st = await pg.evaluate(() => G.say && { who: G.say.blocks[G.say.i].who, text: G.say.blocks[G.say.i].text, ch: G.say.i >= G.say.blocks.length - 1 && G.say.choices && G.say.choices.map(c => ({ go: c.go, text: c.text, by: c.by })) });
-      if (!st) break;
+      if (!st || await pg.evaluate(() => D && D.id === 'choice')) break;
       log.lines.push((st.who ? st.who + ': ' : '') + st.text);
       if (!st.ch) { await press('Enter'); continue; }
       st.ch.forEach(c => log.offered.add(c.go));

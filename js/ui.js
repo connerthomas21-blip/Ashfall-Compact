@@ -38,6 +38,11 @@ function renderUI() {
       <div class="seals">${slot('kaelvahr', 'Mountain')}${slot('dinas', 'Flame')}${slot('mariveth', 'Scrubbed')}</div>
       <form data-form="name"><input id="name-in" autocomplete="off" spellcheck="false" maxlength="24" placeholder="A name">
       <button type="submit">Speak</button><button type="button" data-a="naming-close">Step back</button></form></div>`;
+  } else if (G.say && G.say.screen) {
+    const s = G.say;
+    h = `<div class="screen page"><div class="page-body">${s.blocks.map(b => `<p>${b.who ? `<span class="who">${esc(b.who)}.</span> ` : ''}${esc(b.text)}</p>`).join('')}
+      <div class="page-choices">${s.choices ? s.choices.map((c, k) => `<button data-a="choose" data-i="${k}"><span>${k + 1}</span>${c.by ? `<em>${esc(HEROES[c.by].name)}:</em> ` : ''}${esc(c.text)}</button>`).join('')
+        : '<button data-a="advance">Continue</button>'}</div></div></div>`;
   } else if (G.say) {
     const b = G.say.blocks[G.say.i], last = G.say.i >= G.say.blocks.length - 1, ch = last && G.say.choices;
     h = `<div id="say" ${ch ? '' : 'data-a="advance"'}>${b.who ? `<div class="who">${esc(b.who)}</div>` : ''}<p>${esc(b.text)}</p>

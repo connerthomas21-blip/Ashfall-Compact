@@ -120,7 +120,7 @@ function buildLayer(room) {
     if (c0 === 'v') {   // stair down: steps darkening toward the bottom
       for (let k = 0; k < 4; k++) { g.fillStyle = `rgb(${50 - k * 11},${42 - k * 9},${34 - k * 8})`; g.fillRect(px, py + k * 4, T, 4); }
     }
-    if (c0 === 'U') {
+    if (c0 === 'U' || (c0 === 'X' && room.id === 'deep')) {
       for (let k = 0; k < 4; k++) { g.fillStyle = k % 2 ? '#3d342b' : '#4a3f34'; g.fillRect(px, py + k * 4, T, 4); g.fillStyle = 'rgba(0,0,0,.4)'; g.fillRect(px, py + k * 4 + 3, T, 1); }
     }
     if (c0 === '#' || c0 === 'D') {

@@ -42,7 +42,8 @@ function enterNode(nid, lead = []) {
   const choices = (node.choices || []).map((c, k) => ({ ...c, key: nid + ':' + k }))
     .filter(c => cond(c.if) && (!c.by || S.party[c.by].alive) && (c.repeat || !D.seen.has(c.key)));
   const after = node.next ? () => enterNode(node.next) : node.end || !choices.length ? endDialogue : null;
-  G.say = { blocks: blocks.length ? blocks : [{ text: '…' }], i: 0, choices: choices.length ? choices : null, then: after };
+  G.say = { blocks: blocks.length ? blocks : [{ text: '…' }], i: 0, choices: choices.length ? choices : null, then: after, screen: !!DIALOGUES[D.id].screen };
+  if (G.say.screen) G.say.i = G.say.blocks.length - 1;   // a page shows every paragraph at once
   renderUI();
 }
 
@@ -52,7 +53,9 @@ function chooseOption(k) {
   D.seen.add(c.key);
   if (c.set) Object.assign(S.flags, c.set);
   // The chosen line is spoken aloud by whoever asks it, then the reply follows.
-  enterNode(c.go, [{ who: whoName(c.by || S.lead), text: c.text }]);
+  // On a full page (the Choice) a decision belongs to the whole party, so only a hero's own offer is voiced.
+  const page = DIALOGUES[D.id].screen;
+  enterNode(c.go, page && !c.by ? [] : [{ who: whoName(c.by || S.lead), text: c.text }]);
 }
 
 function endDialogue() {
