@@ -452,10 +452,57 @@ function drawTorch(g, l) {
   g.fillStyle = PAL.emberHot; g.beginPath(); g.ellipse(l.x, l.y - 2.5, 1, fh * 0.5, 0, 0, 7); g.fill();
 }
 
+/* ---------- The surface: the final image ---------- */
+// Grey dawn over dark hills, ash falling, and on the northern horizon, smoke, toward Olgareth.
+function drawSurface(g, t) {
+  const k = clamp(t / 3, 0, 1);
+  const sky = g.createLinearGradient(0, 0, 0, H * 0.7);
+  sky.addColorStop(0, '#0d0b0b'); sky.addColorStop(0.6, '#2b2622'); sky.addColorStop(1, '#4a3f36');
+  g.fillStyle = sky; g.fillRect(0, 0, W, H);
+  // the smoke: columns rising from beyond the far ridge, lit from below
+  const hx = W * 0.64, hy = H * 0.5;
+  const glow = g.createRadialGradient(hx, hy + 4, 0, hx, hy + 4, 70);
+  glow.addColorStop(0, `rgba(224,112,42,${0.32 + Math.sin(t * 1.3) * 0.05})`); glow.addColorStop(1, 'rgba(224,112,42,0)');
+  g.fillStyle = glow; g.fillRect(hx - 80, hy - 70, 160, 120);
+  for (let c = 0; c < 3; c++) {
+    const cx = hx - 26 + c * 24;
+    for (let i = 0; i < 26; i++) {
+      const u = ((i / 26) + t * 0.025 * (1 + c * 0.2)) % 1, y = hy - u * 150, x = cx + Math.sin(u * 5 + c + t * 0.3) * (6 + u * 26) + u * 30;
+      const rr = 8 + u * 30, a = 0.42 * (1 - u) * (u < 0.08 ? u / 0.08 : 1), col = `${44 + u * 30},${38 + u * 26},${34 + u * 24}`;
+      const puff = g.createRadialGradient(x, y, 0, x, y, rr);
+      puff.addColorStop(0, `rgba(${col},${a})`); puff.addColorStop(1, `rgba(${col},0)`);
+      g.fillStyle = puff; g.beginPath(); g.arc(x, y, rr, 0, 7); g.fill();
+    }
+  }
+  // ridges
+  const ridge = (base, amp, col, seed) => {
+    g.fillStyle = col; g.beginPath(); g.moveTo(0, H);
+    for (let x = 0; x <= W; x += 6) g.lineTo(x, base + Math.sin(x * 0.013 + seed) * amp + Math.sin(x * 0.041 + seed * 2) * amp * 0.4 + (hash(x, seed) - 0.5) * 2);
+    g.lineTo(W, H); g.closePath(); g.fill();
+  };
+  ridge(H * 0.52, 6, '#1d1917', 1); ridge(H * 0.62, 12, '#141110', 4);
+  // foreground slope and the mouth of the cave
+  g.fillStyle = '#0b0909'; g.beginPath(); g.moveTo(0, H * 0.74); g.quadraticCurveTo(W * 0.3, H * 0.68, W * 0.55, H * 0.8); g.lineTo(W, H * 0.86); g.lineTo(W, H); g.lineTo(0, H); g.fill();
+  g.fillStyle = '#030202'; g.beginPath(); g.ellipse(W * 0.14, H * 0.8, 26, 15, 0, Math.PI, 0); g.fill();
+  // the survivors, standing at the cave mouth, facing north
+  const who = [...HERO_ORDER.filter(id => S.party[id].alive), ...(S.will ? ['will'] : [])];
+  who.forEach((id, i) => {
+    const x = W * 0.22 + i * 11, y = H * 0.765 - (i % 2) * 1.5, tall = id === 'raiden' ? 15 : id === 'will' ? 12 : 13.5;
+    g.fillStyle = '#050404'; g.beginPath(); g.moveTo(x - 3.2, y); g.lineTo(x - 2.4, y - tall + 4); g.lineTo(x + 2.4, y - tall + 4); g.lineTo(x + 3.2, y); g.fill();
+    g.beginPath(); g.arc(x, y - tall + 2.2, 2.2, 0, 7); g.fill();
+    if (id === 'will') { g.fillStyle = '#f0a050'; g.fillRect(x + 3, y - 6, 1.4, 1.8); }
+  });
+  // falling ash
+  for (const a of G.ash || []) { g.fillStyle = 'rgba(200,190,175,.55)'; g.fillRect(a.x, a.y, a.r, a.r); }
+  // fade in from black
+  if (k < 1) { g.fillStyle = `rgba(0,0,0,${1 - k})`; g.fillRect(0, 0, W, H); }
+}
+
 /* ---------- Frame ---------- */
 function draw() {
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = '#000'; ctx.fillRect(0, 0, cv.width, cv.height);
-  const room = G.room; if (!room) return;
+  const room = G.room;
+  if (!room) { if (G.scene && G.scene.draw) { ctx.setTransform(SCALE, 0, 0, SCALE, 0, 0); G.scene.draw(ctx); } return; }
   if (!room.layer) room.layer = buildLayer(room);
   const sh = RM ? 0 : Math.max(G.shake || 0, G.shakeT > 0 ? G.shakeAmt : 0);
   const cx = Math.round((G.cam.x + (Math.random() - 0.5) * sh * 2) * SCALE) / SCALE, cy = Math.round((G.cam.y + (Math.random() - 0.5) * sh * 2) * SCALE) / SCALE;

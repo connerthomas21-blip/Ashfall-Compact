@@ -48,6 +48,18 @@ function renderUI() {
     h = `<div id="say" ${ch ? '' : 'data-a="advance"'}>${b.who ? `<div class="who">${esc(b.who)}</div>` : ''}<p>${esc(b.text)}</p>
       ${ch ? `<div class="choices">${ch.map((c, k) => `<button data-a="choose" data-i="${k}"><span>${k + 1}</span>${c.by ? `<em>${esc(HEROES[c.by].name)}:</em> ` : ''}${esc(c.text)}</button>`).join('')}</div>`
         : `<div class="more">${last ? 'Close' : 'Continue'} (E, Enter or click)</div>`}</div>`;
+  } else if (G.endCard) {
+    h = `<div class="screen page endcard"><div class="page-body">
+      ${endingParagraphs().map(t => `<p>${esc(t)}</p>`).join('')}
+      <h2 class="tbc">To be continued: The Inquisition.</h2>
+      <p class="small">Your choices are kept in this save, and in this code, for the next chapter.</p>
+      <textarea readonly>${esc(encodeSave())}</textarea>
+      <div class="page-choices row"><button data-a="to-title">Return to title</button><button data-a="new">Begin again</button></div>
+      <p class="credits">The Ashfall Compact: The Deep Echo Library. A vertical slice adapted from the tabletop campaign.</p>
+    </div></div>`;
+  } else if (currentBark()) {
+    const b = currentBark();
+    h = `<div class="bark"><span class="who">${esc(b.who)}</span> ${esc(b.text)}</div>`;
   } else if (hintWanted()) {
     h = '<div class="hint">WASD or arrows to move · 1 2 3 or Tab to change hero · Space to pause · Esc for menu</div>';
   }
@@ -69,10 +81,11 @@ uiEl.addEventListener('keydown', e => { if (e.key === 'Escape' && G.naming) { G.
 
 function act(a, data = {}) {
   if (a === 'new') {
+    G.endCard = false;
     const dev = (location.hash.match(/scene=(\w+)/) || [])[1];   // #scene=thyken jumps straight to a scene for testing
     S = fresh(); U = { screen: 'game' }; go(SCENES[dev] ? dev : S.scene, { fromTitle: true });
   }
-  if (a === 'continue') { S = Object.assign(fresh(), loadSaved()); U = { screen: 'game' }; go(S.scene, { noSave: true }); }
+  if (a === 'continue') { S = Object.assign(fresh(), loadSaved()); U = { screen: 'game' }; go(S.flags.chapter_complete ? 'ending' : S.scene, { noSave: true }); }
   if (a === 'load-code') { U.code = 'load'; U.err = null; renderUI(); }
   if (a === 'load-go') {
     try { S = decodeSave(document.getElementById('code').value); save(); U = { screen: 'game' }; go(S.scene, { noSave: true }); }
@@ -81,7 +94,7 @@ function act(a, data = {}) {
   if (a === 'resume') { G.menu = false; U.code = null; renderUI(); }
   if (a === 'mute') { setMuted(!AU.muted); renderUI(); }
   if (a === 'show-code') { U.code = 'show'; renderUI(); }
-  if (a === 'to-title') { ambience(null); G.menu = false; G.scene = null; G.room = null; U = { screen: 'title' }; renderUI(); }
+  if (a === 'to-title') { ambience(null); G.endCard = false; G.menu = false; G.scene = null; G.room = null; U = { screen: 'title' }; renderUI(); }
   if (a === 'advance') advanceSay();
   if (a === 'choose') chooseOption(+data.i);
   if (a === 'naming-close') { G.naming = null; renderUI(); }

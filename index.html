@@ -72,6 +72,16 @@ textarea { width: min(90%, 520px); height: 90px; background: var(--well); color:
 .page-choices button span { color: var(--ember); margin-right: 10px; font-family: var(--display); }
 .page-choices button em { color: var(--dim); }
 #say .more { text-align: right; font-size: .8em; color: var(--dim); }
+.bark { position: absolute; left: 50%; bottom: 6%; transform: translateX(-50%); width: min(90%, 720px); text-align: center; pointer-events: none;
+  font-size: clamp(14px, 1.9vw, 19px); color: var(--text); text-shadow: 0 1px 3px #000, 0 0 12px #000; animation: barkIn 1.2s ease-out; }
+.bark .who { font-family: var(--display); color: var(--ember); letter-spacing: .05em; margin-right: .4em; }
+@keyframes barkIn { from { opacity: 0; } to { opacity: 1; } }
+.endcard { background: rgba(7,6,6,.82); animation: barkIn 2.5s ease-out; }
+.endcard .tbc { font-family: var(--display); font-size: clamp(20px, 3vw, 32px); color: var(--text); margin: 1.2em 0 .6em; letter-spacing: .04em; }
+.endcard .small, .endcard .credits { color: var(--dim); font-size: .8em; }
+.endcard .credits { margin-top: 1.6em; }
+.endcard textarea { width: 100%; height: 56px; }
+.page-choices.row { flex-direction: row; flex-wrap: wrap; }
 .hint { position: absolute; left: 0; right: 0; bottom: 8px; text-align: center; font-size: 14px; color: var(--dim); pointer-events: none; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 </style>

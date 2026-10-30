@@ -435,3 +435,47 @@ DIALOGUES.choice = {
     },
   },
 };
+
+/* ---------- Scene 7: The Quiet After ----------
+  One reflective line per surviving hero (and Will, if he lived), spoken as captions while you walk out.
+  The first line whose condition holds is used. Ichabod's dinas_whisper line is the permanent cost of the whisper route.
+*/
+const REFLECTIONS = {
+  raiden: [
+    { if: { has: 'sacrificed_will' }, text: 'I told him I would remember his name. I am going to have to decide what else I remember, now, and who taught me to forget it.' },
+    { if: { has: 'sacrificed_hero' }, text: 'We left one of us down there. I keep waiting for the Church to tell me what that was. It is not going to.' },
+    { if: { has: 'raiden_doubt' }, text: 'We let him walk out. I think that was mercy. I am less sure than I was this morning what mercy looks like, or whose it is.' },
+    { text: 'We let him walk out. I would like to believe that was mercy.' },
+  ],
+  ichabod: [
+    { if: { has: 'dinas_whisper' }, text: 'She has been quieter since the doors. Not gone. Quieter. Like someone who got what they came for and is in no hurry to say what it was.' },
+    { if: { has: 'dinas_truth' }, text: 'A woman who burned people until she became a god. And I have been taking her calls.' },
+    { text: 'The Tome is cold. First time since I found it.' },
+  ],
+  kieran: [
+    { if: { has: 'sacrificed_will' }, text: 'I will find his wife. Someone should get to her before the Inquisition does, and tell her about the lantern.' },
+    { if: { has: 'sacrificed_hero' }, text: 'I keep turning round to say something to someone who is not there.' },
+    { text: 'An old man walks out of a hole in the ground and that is supposed to buy us time. I will believe it when I see the bill.' },
+  ],
+  will: [
+    { text: 'Olgareth is north of here. If we walk through the night, we might be there before they are. We might not.' },
+  ],
+};
+
+// End card: what the slice carries forward, in paragraphs. Built from flags.
+function endingParagraphs() {
+  const f = S.flags, p = [];
+  const gone = f.sacrificed_hero ? HEROES[f.sacrificed_hero].name : f.sacrificed_will ? 'Will' : null;
+  if (f.released_thyken) p.push('Thyken walked out of the Library on his own feet. Varn is still looking for an offering, and he is patient. Kael\'Vahr dreams on beneath the Ironpeaks, half awake.');
+  else if (f.sacrificed_thyken) p.push(`Thyken gave himself to the earth, and ${gone} went with him. Kael\'Vahr sleeps deeper for it. Varn was taken back into the ground, and he is not dead.`);
+  const src = { tome: 'Ichabod showed you the scrap he had kept hidden in the Tome, and Mariveth\'s name came back into the world from a page that had been waiting for someone to read it.',
+    clues: 'You found Mariveth\'s name in wine stains, a sailor\'s charm and a chisel that slipped. People forget. Habits do not.',
+    whisper: 'Dinas gave Ichabod Mariveth\'s name at the doors. She does nothing for free, and he has not yet been told the price.',
+    spoken: 'You spoke Mariveth\'s name at the doors as though you had always known it.' }[f.mariveth_name_source];
+  if (src) p.push(src + (f.took_sea_prayer ? ' A prayer from her dry shelf goes north with you.' : ''));
+  const minds = [];
+  if (f.dinas_truth) minds.push('Ichabod knows now what Dinas was, and what she fed on');
+  if (f.raiden_doubt) minds.push('Raiden has started asking where the Omnisiah came from');
+  if (minds.length) p.push(minds.join(', and ') + '.');
+  return p;
+}

@@ -7,6 +7,7 @@ function roomScene(mapId, hooks = {}) {
     ...hooks,
     enter(opts) {
       G.room = buildRoom(mapId);
+      if (hooks.spawnAt) G.room.spawns.P = hooks.spawnAt(G.room);
       spawnParty();
       armHeroes();
       if (G.room.foes && !(hooks.cleared && hooks.cleared())) spawnFoes(G.room.foes);
@@ -23,7 +24,7 @@ function roomScene(mapId, hooks = {}) {
       if (t && t !== G.lastTrigger && hooks.onTrigger) hooks.onTrigger(t);
       G.lastTrigger = t;
       if (G.sceneId !== this.id) return;   // the trigger moved us to another scene
-      const it = nearestInteract(L);
+      const it = hooks.noInteract ? null : nearestInteract(L);
       G.prompt = it ? 'E  Examine' : null;
       if (it && hit('KeyE') && hooks.onInteract) hooks.onInteract(it);
     },
@@ -317,35 +318,39 @@ SCENES.varn = roomScene('deep', {
   },
 });
 
-/* ---------- Scene 7: The Quiet After (milestone 8) ---------- */
-SCENES.after = {
-  enter() { G.room = null; narrate([{ text: 'The Quiet After is built in milestone 8.' }]); },
-  update() {}, draw() {},
-};
+/* ---------- Scene 7: The Quiet After ----------
+  Walk back up through the Library from the stair. Each survivor says one line as a caption (the world keeps moving).
+  Leaving by the way you came in fades to the surface.
+*/
+SCENES.after = roomScene('library', {
+  amb: 'library',
+  noInteract: true,
+  spawnAt: room => ({ x: 21 * TILE, y: 14.5 * TILE }),
+  enter() {
+    const who = [...HERO_ORDER.filter(id => S.party[id].alive), ...(S.will ? ['will'] : [])];
+    G.barks = who.map(id => ({ who: whoName(id), text: REFLECTIONS[id].find(l => cond(l.if)).text }));
+    G.barkI = -1; G.barkT = 2.5;
+  },
+  update(dt) {
+    G.barkT -= dt;
+    if (G.barkT <= 0 && G.barkI < G.barks.length) { G.barkI++; G.barkT = 7.5; renderUI(); }
+    if (leader().y > 22.6 * TILE) go('surface');
+  },
+});
+function currentBark() { return G.sceneId === 'after' && G.barks && G.barks[G.barkI]; }
 
-// Thyken: seated, robed, bound at wrists and throat by obsidian chains running to rings in the floor.
-function drawThyken(g, p) {
-  const t = G.time, sheen = 0.25 + Math.sin(t * 2) * 0.12;
-  const anchors = [[-22, -10], [22, -12], [-20, 14], [24, 12]], holds = [[-5, 0], [5, 0], [-2, -6], [2, -6]];
-  g.save(); g.translate(p.x, p.y);
-  for (const [ax, ay] of anchors) { g.strokeStyle = '#3b332b'; g.lineWidth = 1.4; g.beginPath(); g.arc(ax, ay, 2.2, 0, 7); g.stroke(); }
-  g.fillStyle = 'rgba(0,0,0,.45)'; g.beginPath(); g.ellipse(0, 5, 10, 4.5, 0, 0, 7); g.fill();
-  // robe, seated
-  g.fillStyle = '#6d604f'; g.beginPath(); g.ellipse(0, 1, 8.5, 6, 0, 0, 7); g.fill();
-  g.strokeStyle = 'rgba(0,0,0,.6)'; g.lineWidth = 0.8; g.stroke();
-  g.fillStyle = '#5a4e40'; g.fillRect(-5.5, 2, 11, 3);
-  g.fillStyle = '#c9bca2'; g.beginPath(); g.arc(-5, 1, 1.6, 0, 7); g.arc(5, 1, 1.6, 0, 7); g.fill();   // hands on knees
-  // head: bald, bowed slightly
-  g.fillStyle = '#b8a98f'; g.beginPath(); g.arc(0, -6, 3.6, 0, 7); g.fill(); g.stroke();
-  g.fillStyle = '#d8cdb4'; g.beginPath(); g.ellipse(0, -3.6, 2.2, 1.4, 0, 0, Math.PI); g.fill();   // beard
-  // chains: links along each line
-  anchors.forEach(([ax, ay], i) => {
-    const [hx, hy] = holds[i], n = 7;
-    for (let k = 0; k <= n; k++) {
-      const u = k / n, x = lerp(hx, ax, u), y = lerp(hy, ay, u) + Math.sin(u * Math.PI) * 2.5;
-      g.fillStyle = '#0d0b0c'; g.beginPath(); g.ellipse(x, y, 1.5, 1, Math.atan2(ay - hy, ax - hx) + (k % 2) * 1.2, 0, 7); g.fill();
-      g.fillStyle = `rgba(224,112,42,${sheen * (k % 2 ? 0.6 : 1)})`; g.fillRect(x - 0.3, y - 0.6, 0.6, 0.4);
-    }
-  });
-  g.restore();
-}
+/* ---------- The surface, and the end card ---------- */
+SCENES.surface = {
+  enter() {
+    G.room = null; G.t0 = G.time; G.ash = Array.from({ length: 90 }, () => ({ x: rnd(0, W), y: rnd(-H, H), s: rnd(4, 12), d: rnd(-6, 6), r: rnd(0.4, 1.2) }));
+    setFlag('chapter_complete'); save();
+  },
+  update(dt) {
+    for (const a of G.ash) { a.y += a.s * dt; a.x += (a.d + Math.sin(G.time + a.s) * 3) * dt; if (a.y > H) { a.y = -4; a.x = rnd(0, W); } }
+    if (G.time - G.t0 > 7 && !G.endCard) { G.endCard = true; renderUI(); }
+  },
+  draw: g => drawSurface(g, G.time - G.t0),
+  exit() { G.endCard = false; },
+};
+// Continue on a finished save lands here: straight to the end card.
+SCENES.ending = { ...SCENES.surface, enter() { SCENES.surface.enter(); G.t0 = G.time - 7; } };

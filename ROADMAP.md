@@ -12,7 +12,7 @@ Design: `GAME_SPEC.md` (section 2 lore is canonical; ask before any choice that 
 - Tests that press keys must wait for animation frames between presses (see `press` in `test/dialogue.js`). Otherwise two presses can land in the same frame or skip one, and lines get skipped.
 
 ## Lessons carried over from Starbreaker Saga
-- A headless Playwright test for every milestone (`node test/smoke.js <dir>`, `node test/dialogue.js <dir>`, `node test/doors.js <dir>`, `node test/library.js <dir>`, `node test/combat.js <dir>`, `node test/choice.js <dir>`, `node test/varn.js <dir>`) that plays the slice and saves screenshots.
+- A headless Playwright test for every milestone (`node test/smoke.js <dir>`, `node test/dialogue.js <dir>`, `node test/doors.js <dir>`, `node test/library.js <dir>`, `node test/combat.js <dir>`, `node test/choice.js <dir>`, `node test/varn.js <dir>`, `node test/ending.js <dir>`) that plays the slice and saves screenshots.
 - A `window.__fast`-style hook for balance bots once combat exists (milestone 5).
 - Save codes as well as localStorage.
 
@@ -71,7 +71,13 @@ WASD or arrows move. 1/2/3 or Tab (Shift+Tab goes back) changes hero. J attacks,
    - The ally AI sidesteps the blade after a reaction delay and not every time (75%). Movement uses grid pathfinding around the fissure and walls (`navTo`).
 
    **About the spec's numbers.** "~155 HP" is a tabletop figure. In real time the heroes act about every second, not every six, so a straight conversion gives a fight of 30 to 40 seconds. Varn has 1,750 HP against the full party (×0.51 to 0.55 when a hero was sacrificed, depending on who). The autopilot bot wins about a third to two thirds of fights in 60 to 130s. `node test/varn.js <dir> [n]` runs the mechanics checks, screenshots and the balance table.
-8. Ending, the end card, and save/load polish.
+8. **Ending** (done):
+   - The Quiet After: you walk back up through the Library from the stair. Each survivor, and Will if he lived, says one reflective line as a caption that doesn't pause play (`REFLECTIONS`, first matching condition wins). Ichabod's line after the whisper route is the permanent cost of `dinas_whisper`.
+   - The surface: grey dawn, falling ash, the survivors at the cave mouth, and smoke on the northern horizon toward Olgareth.
+   - The end card gives what carries forward as paragraphs (`endingParagraphs`), then "To be continued: The Inquisition.", then a save code for the sequel and a credits line.
+   - `chapter_complete` is set, and Continue on a finished save returns to the end card.
+
+   `node test/ending.js <dir>` covers the release, Will-sacrifice and hero-sacrifice endings.
 9. Polish: lighting, audio hooks, tuning Varn with a bot (hard but winnable with 3 heroes, and with 2).
 
 ## Story decisions
