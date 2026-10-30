@@ -1,0 +1,202 @@
+'use strict';
+/* ============================== RENDER: canvas, room layer, actors, lighting, HUD ============================== */
+
+const cv = document.getElementById('view'), ctx = cv.getContext('2d');
+const lc = document.createElement('canvas'), lx = lc.getContext('2d');   // darkness / light mask
+let SCALE = 1;
+
+function resize() {
+  const r = cv.getBoundingClientRect(), dpr = Math.min(3, devicePixelRatio || 1);
+  cv.width = lc.width = Math.max(1, Math.round(r.width * dpr));
+  cv.height = lc.height = Math.max(1, Math.round(r.height * dpr));
+  SCALE = cv.width / W;
+  if (G.room) G.room.layer = null;   // rebuild the static layer at the new resolution
+}
+addEventListener('resize', resize);
+
+// Deterministic noise so the cached floor doesn't change between rebuilds.
+function hash(x, y, s = 0) { let h = (x * 374761393 + y * 668265263 + s * 2147483647) | 0; h = (h ^ (h >>> 13)) * 1274126177 | 0; return ((h ^ (h >>> 16)) >>> 0) / 4294967296; }
+
+/* ---------- Static room layer (floor, walls, decor), cached per room ---------- */
+function buildLayer(room) {
+  const c = document.createElement('canvas');
+  c.width = Math.ceil(room.pw * SCALE); c.height = Math.ceil(room.ph * SCALE);
+  const g = c.getContext('2d'); g.scale(SCALE, SCALE);
+  const T = TILE, solid = (x, y) => SOLID.has(tileAt(room, x, y)) && tileAt(room, x, y) !== '~';
+  for (let y = 0; y < room.h; y++) for (let x = 0; x < room.w; x++) {
+    const c0 = room.grid[y][x], px = x * T, py = y * T, n = hash(x, y);
+    // floor everywhere first
+    g.fillStyle = n < 0.5 ? PAL.earth : '#2e261f'; g.fillRect(px, py, T, T);
+    for (let k = 0; k < 4; k++) { const h1 = hash(x, y, k + 1); g.fillStyle = h1 < 0.5 ? 'rgba(0,0,0,.25)' : 'rgba(120,100,80,.12)'; g.fillRect(px + hash(x, y, k + 9) * T, py + hash(x, y, k + 17) * T, 1.2, 1.2); }
+    if (c0 === ',') for (let k = 0; k < 5; k++) {
+      const sx = px + 2 + hash(x, y, k + 30) * 12, sy = py + 2 + hash(x, y, k + 40) * 12, sr = 1 + hash(x, y, k + 50) * 2.2;
+      g.fillStyle = '#4a3f34'; g.beginPath(); g.ellipse(sx, sy, sr, sr * 0.75, 0, 0, 7); g.fill();
+      g.fillStyle = '#1a1512'; g.fillRect(sx - sr * 0.6, sy + sr * 0.4, sr * 1.2, 0.8);
+    }
+    if (c0 === 'b') {
+      g.strokeStyle = PAL.boneDim; g.lineWidth = 1.2; g.lineCap = 'round';
+      g.beginPath(); g.moveTo(px + 3, py + 10); g.lineTo(px + 11, py + 7); g.moveTo(px + 6, py + 12); g.lineTo(px + 13, py + 13); g.stroke();
+      g.fillStyle = PAL.bone; g.beginPath(); g.arc(px + 12, py + 5, 2.2, 0, 7); g.fill();
+    }
+    if (c0 === 'o') {
+      g.fillStyle = 'rgba(0,0,0,.4)'; g.beginPath(); g.ellipse(px + 8, py + 12, 7.5, 3.5, 0, 0, 7); g.fill();
+      g.fillStyle = '#433830'; g.beginPath(); g.ellipse(px + 8, py + 8, 7, 6.5, 0, 0, 7); g.fill();
+      g.fillStyle = '#5a4c40'; g.beginPath(); g.ellipse(px + 6.5, py + 6, 3.5, 2.5, -0.5, 0, 7); g.fill();
+    }
+    if (c0 === '#' || c0 === 'D') {
+      g.fillStyle = PAL.rock; g.fillRect(px, py, T, T);
+      if (c0 === '#') for (let k = 0; k < 3; k++) { g.fillStyle = 'rgba(70,58,46,.18)'; g.fillRect(px + hash(x, y, k + 60) * 14, py + hash(x, y, k + 70) * 14, 2, 1); }
+      // Rock face where a wall meets floor below: gives the room depth.
+      if (!solid(x, y + 1)) {
+        g.fillStyle = c0 === 'D' ? '#1d1a1c' : PAL.rockTop; g.fillRect(px, py + T - 6, T, 6);
+        g.fillStyle = 'rgba(0,0,0,.35)'; g.fillRect(px, py + T, T, 2);
+        if (c0 === '#') { g.fillStyle = 'rgba(0,0,0,.3)'; g.fillRect(px + hash(x, y, 80) * 12, py + T - 6, 1, 6); }
+      }
+      if (!solid(x, y - 1) && y > 0) { g.fillStyle = 'rgba(90,75,60,.35)'; g.fillRect(px, py, T, 1); }
+      if (!solid(x - 1, y)) { g.fillStyle = 'rgba(90,75,60,.25)'; g.fillRect(px, py, 1, T); }
+      if (!solid(x + 1, y)) { g.fillStyle = 'rgba(0,0,0,.35)'; g.fillRect(px + T - 1, py, 1, T); }
+    }
+  }
+  // Sealed doors: one obsidian slab across the run of D tiles, inscribed in bone.
+  const ds = []; room.grid.forEach((r, y) => r.forEach((c1, x) => c1 === 'D' && ds.push({ x, y })));
+  if (ds.length) {
+    const x0 = Math.min(...ds.map(d => d.x)) * T, x1 = (Math.max(...ds.map(d => d.x)) + 1) * T, y0 = ds[0].y * T;
+    g.fillStyle = PAL.obsidian; g.fillRect(x0 + 2, y0 - 10, x1 - x0 - 4, T + 10);
+    g.strokeStyle = '#2c2629'; g.lineWidth = 1; g.strokeRect(x0 + 2.5, y0 - 9.5, x1 - x0 - 5, T + 9);
+    g.fillStyle = '#0a0809'; g.fillRect((x0 + x1) / 2 - 0.5, y0 - 10, 1, T + 10);
+    g.fillStyle = 'rgba(216,205,180,.35)';
+    for (let i = 0; i < 26; i++) g.fillRect(x0 + 10 + i * ((x1 - x0 - 20) / 26), y0 + 2 + (i % 3), 3, 1);
+  }
+  return c;
+}
+
+/* ---------- Actors (top-down, three-quarter) ---------- */
+function drawActor(g, a) {
+  const d = a.def, r = a.r, bob = a.moving ? Math.sin(a.walk) * 0.7 : 0, fa = Math.atan2(a.face.y, a.face.x);
+  const isLead = a.hero && a.id === S.lead;
+  g.save(); g.translate(a.x, a.y);
+  g.fillStyle = 'rgba(0,0,0,.45)'; g.beginPath(); g.ellipse(0, r * 0.55, r * 1.1, r * 0.5, 0, 0, 7); g.fill();
+  if (isLead) { g.strokeStyle = 'rgba(224,112,42,.75)'; g.lineWidth = 1; g.beginPath(); g.ellipse(0, r * 0.55, r * 1.5, r * 0.75, 0, 0, 7); g.stroke(); }
+  g.translate(0, -r * 0.4 + bob);
+  const side = (dx, dy) => [Math.cos(fa) * dx - Math.sin(fa) * dy, Math.sin(fa) * dx + Math.cos(fa) * dy];
+  const behind = a.face.y < -0.3;   // facing away: held items drawn under the body
+  const items = () => DRAW_ITEM[a.id] && DRAW_ITEM[a.id](g, a, side);
+  if (behind) items();
+  // body
+  g.fillStyle = d.body; g.beginPath(); g.ellipse(0, 0, r, r * 0.85, 0, 0, 7); g.fill();
+  g.strokeStyle = 'rgba(0,0,0,.6)'; g.lineWidth = 0.8; g.stroke();
+  DRAW_BODY[a.id] && DRAW_BODY[a.id](g, a);
+  // head
+  const hx = a.face.x * 1.2, hy = -r * 0.75 + a.face.y * 0.8;
+  g.fillStyle = HEAD[a.id] || '#2a2420'; g.beginPath(); g.arc(hx, hy, r * 0.55, 0, 7); g.fill(); g.stroke();
+  if (a.id === 'raiden') { g.fillStyle = PAL.bone; g.fillRect(hx - 2 + a.face.x * 1.2, hy - 0.4 + a.face.y, 4, 0.9); }
+  if (!behind) items();
+  g.restore();
+}
+const HEAD = { raiden: '#6f6c66', ichabod: '#1c1619', kieran: '#3d3024', will: '#3f453a' };
+const DRAW_BODY = {
+  raiden: (g, a) => { g.fillStyle = PAL.bone; g.fillRect(-1.6, -a.r * 0.7, 3.2, a.r * 1.4); },
+  ichabod: (g, a) => { g.fillStyle = '#8a3f1a'; g.fillRect(-2.2, -a.r * 0.6, 1.3, a.r * 1.3); g.fillRect(0.9, -a.r * 0.6, 1.3, a.r * 1.3); },
+  kieran: (g, a) => { g.strokeStyle = '#2a1f17'; g.lineWidth = 1; g.beginPath(); g.moveTo(-a.r * 0.8, -a.r * 0.5); g.lineTo(a.r * 0.7, a.r * 0.6); g.stroke(); },
+  will: (g, a) => { g.fillStyle = PAL.boneDim; g.fillRect(-a.r * 0.8, -1, a.r * 1.6, 1); },
+};
+const DRAW_ITEM = {
+  raiden: (g, a, side) => {   // kite shield on the facing side
+    const [x, y] = side(a.r * 0.9, -a.r * 0.5);
+    g.save(); g.translate(x, y); g.rotate(Math.atan2(a.face.y, a.face.x));
+    g.fillStyle = '#b9ad8f'; g.beginPath(); g.moveTo(-1.5, -4); g.lineTo(2, -3); g.lineTo(2.5, 0); g.lineTo(2, 3); g.lineTo(-1.5, 4); g.closePath(); g.fill();
+    g.strokeStyle = '#5a5244'; g.lineWidth = 0.7; g.stroke(); g.restore();
+  },
+  ichabod: (g, a, side) => {  // the Tome of Four Corners, faintly burning
+    const [x, y] = side(a.r * 0.8, a.r * 0.6), p = 0.6 + Math.sin(G.time * 3) * 0.2;
+    g.fillStyle = '#3a2418'; g.fillRect(x - 2.2, y - 1.8, 4.4, 3.6);
+    g.fillStyle = `rgba(224,112,42,${p})`; g.fillRect(x - 1.2, y - 1, 2.4, 2);
+  },
+  kieran: (g, a, side) => {   // paired daggers
+    g.strokeStyle = PAL.steel; g.lineWidth = 0.9; g.lineCap = 'round';
+    for (const s of [-1, 1]) { const [x, y] = side(a.r * 0.5, s * a.r * 0.8), [x2, y2] = side(a.r * 1.3, s * a.r * 0.9); g.beginPath(); g.moveTo(x, y); g.lineTo(x2, y2); g.stroke(); }
+  },
+  will: (g, a, side) => {     // the lantern
+    const [x, y] = side(a.r * 0.4, a.r * 1.1);
+    g.fillStyle = '#2a2420'; g.fillRect(x - 1.5, y - 2, 3, 3.5);
+    g.fillStyle = '#ffc47a'; g.fillRect(x - 0.9, y - 1.3, 1.8, 2);
+  },
+};
+
+/* ---------- Lighting ---------- */
+// Darkness is a mask; each light punches a soft hole, then a warm additive pass tints what it touches.
+function lightsInView() {
+  const out = [], t = G.time;
+  for (const l of G.room.lights) {
+    const f = l.torch ? 1 + Math.sin(t * 9 + l.flicker) * 0.04 + Math.sin(t * 23 + l.flicker * 3) * 0.025 : 1;
+    out.push({ x: l.x, y: l.y, r: l.r * f, color: l.color, warm: l.torch ? 0.22 : 0.12 });
+  }
+  for (const a of G.actors) if (a.def.light) out.push({ x: a.x, y: a.y - 3, r: a.def.light, color: a.def.lightColor, warm: a.def.lightColor ? 0.14 : 0 });
+  if (G.scene.lights) out.push(...G.scene.lights());
+  return out.filter(l => l.x + l.r > G.cam.x && l.x - l.r < G.cam.x + W && l.y + l.r > G.cam.y && l.y - l.r < G.cam.y + H);
+}
+function drawLighting(lights) {
+  lx.setTransform(1, 0, 0, 1, 0, 0); lx.globalCompositeOperation = 'source-over'; lx.clearRect(0, 0, lc.width, lc.height);
+  lx.setTransform(SCALE, 0, 0, SCALE, -G.cam.x * SCALE, -G.cam.y * SCALE);
+  lx.fillStyle = `rgba(4,3,3,${G.room.dark})`; lx.fillRect(G.cam.x, G.cam.y, W, H);
+  lx.globalCompositeOperation = 'destination-out';
+  for (const l of lights) {
+    const gr = lx.createRadialGradient(l.x, l.y, 0, l.x, l.y, l.r);
+    gr.addColorStop(0, 'rgba(0,0,0,1)'); gr.addColorStop(0.45, 'rgba(0,0,0,.75)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+    lx.fillStyle = gr; lx.beginPath(); lx.arc(l.x, l.y, l.r, 0, 7); lx.fill();
+  }
+  ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(lc, 0, 0); ctx.restore();
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  for (const l of lights) if (l.warm && l.color) {
+    const gr = ctx.createRadialGradient(l.x, l.y, 0, l.x, l.y, l.r * 0.8);
+    gr.addColorStop(0, hexA(l.color, l.warm)); gr.addColorStop(1, hexA(l.color, 0));
+    ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(l.x, l.y, l.r * 0.8, 0, 7); ctx.fill();
+  }
+  ctx.restore();
+}
+function hexA(hex, a) { const n = parseInt(hex.slice(1), 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`; }
+
+function drawTorch(g, l) {
+  const t = G.time + l.flicker;
+  g.fillStyle = '#2a1f17'; g.fillRect(l.x - 1, l.y - 2, 2, 7);
+  const fh = 4 + Math.sin(t * 13) * 0.8;
+  g.fillStyle = PAL.ember; g.beginPath(); g.ellipse(l.x, l.y - 3, 2.2, fh, 0, 0, 7); g.fill();
+  g.fillStyle = PAL.emberHot; g.beginPath(); g.ellipse(l.x, l.y - 2.5, 1, fh * 0.5, 0, 0, 7); g.fill();
+}
+
+/* ---------- Frame ---------- */
+function draw() {
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = '#000'; ctx.fillRect(0, 0, cv.width, cv.height);
+  const room = G.room; if (!room) return;
+  if (!room.layer) room.layer = buildLayer(room);
+  const cx = Math.round(G.cam.x * SCALE) / SCALE, cy = Math.round(G.cam.y * SCALE) / SCALE;
+  G.cam.x = cx; G.cam.y = cy;
+  ctx.setTransform(SCALE, 0, 0, SCALE, -cx * SCALE, -cy * SCALE);
+  ctx.drawImage(room.layer, 0, 0, room.layer.width / SCALE, room.layer.height / SCALE);
+  for (const l of room.lights) if (l.torch) drawTorch(ctx, l);
+  if (G.scene.drawUnder) G.scene.drawUnder(ctx);
+  [...G.actors].sort((a, b) => a.y - b.y).forEach(a => drawActor(ctx, a));
+  if (G.scene.drawOver) G.scene.drawOver(ctx);
+  drawLighting(lightsInView());
+  ctx.setTransform(SCALE, 0, 0, SCALE, 0, 0);
+  drawHUD(ctx);
+}
+
+function drawHUD(g) {
+  g.font = '7px "EB Garamond", Georgia, serif'; g.textBaseline = 'middle';
+  HERO_ORDER.forEach((id, i) => {
+    const x = 6 + i * 62, y = 6, alive = S.party[id].alive, lead = id === S.lead;
+    g.fillStyle = 'rgba(16,13,12,.82)'; g.fillRect(x, y, 58, 14);
+    g.strokeStyle = lead ? PAL.ember : '#3a3027'; g.lineWidth = lead ? 0.8 : 0.5; g.strokeRect(x + 0.25, y + 0.25, 57.5, 13.5);
+    g.fillStyle = lead ? PAL.ember : PAL.boneDim; g.fillText(HEROES[id].key, x + 4, y + 7.5);
+    g.fillStyle = alive ? (lead ? PAL.bone : PAL.boneDim) : '#5a5046'; g.fillText(HEROES[id].name, x + 11, y + 7.5);
+    if (!alive) { g.fillStyle = '#5a5046'; g.fillRect(x + 10, y + 7, 30, 0.5); }
+  });
+  if (G.paused && !G.say && !G.menu) {
+    g.fillStyle = 'rgba(0,0,0,.45)'; g.fillRect(0, 0, W, H);
+    g.font = '12px "IM Fell English SC", Georgia, serif'; g.textAlign = 'center'; g.fillStyle = PAL.bone;
+    g.fillText('Paused', W / 2, H / 2 - 6);
+    g.font = '7px "EB Garamond", Georgia, serif'; g.fillStyle = PAL.boneDim; g.fillText('Space to resume', W / 2, H / 2 + 8);
+    g.textAlign = 'left';
+  }
+}
