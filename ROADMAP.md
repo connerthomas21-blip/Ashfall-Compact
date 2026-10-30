@@ -35,6 +35,8 @@ WASD or arrows move. 1/2/3 or Tab (Shift+Tab goes back) changes hero. E examines
 8. Ending, the end card, and save/load polish.
 9. Polish: lighting, audio hooks, tuning Varn with a bot (hard but winnable with 3 heroes, and with 2).
 
+## Story decisions
+- Will's wife lives in Olgareth: kept for now (the spec marks it as an editorial addition, not campaign canon).
+
 ## Open questions
-- Will's wife in Olgareth: the spec calls it an editorial addition. Keep it or cut it? (Ask before writing Will's volunteer lines.)
 - The spec's Sneak Attack condition, "when a shard is not adjacent", reads oddly. Probably "when no enemy is adjacent to Kieran" or "when flanking". Confirm at milestone 5.

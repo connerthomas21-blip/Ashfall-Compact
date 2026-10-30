@@ -43,6 +43,22 @@ function buildLayer(room) {
       g.fillStyle = '#433830'; g.beginPath(); g.ellipse(px + 8, py + 8, 7, 6.5, 0, 0, 7); g.fill();
       g.fillStyle = '#5a4c40'; g.beginPath(); g.ellipse(px + 6.5, py + 6, 3.5, 2.5, -0.5, 0, 7); g.fill();
     }
+    if (c0 === '~') {
+      // Dark chasm with ragged lips; the glowing vein is drawn afterwards so it runs continuously between tiles.
+      g.fillStyle = '#070505'; g.fillRect(px, py, T, T);
+      const lip = (dx, dy) => tileAt(room, x + dx, y + dy) !== '~';
+      g.fillStyle = '#3b3128';
+      for (let k = 0; k < 4; k++) {
+        const o = hash(x, y, 100 + k) * 12, w = 2 + hash(x, y, 110 + k) * 3;
+        if (lip(0, -1)) g.fillRect(px + o, py, w, 1.5 + hash(x, y, 120 + k) * 2);
+        if (lip(0, 1)) g.fillRect(px + o, py + T - 2 - hash(x, y, 130 + k) * 2, w, 3);
+        if (lip(-1, 0)) g.fillRect(px, py + o, 1.5 + hash(x, y, 140 + k) * 2, w);
+        if (lip(1, 0)) g.fillRect(px + T - 2 - hash(x, y, 150 + k) * 2, py + o, 3, w);
+      }
+    }
+    if (c0 === 'U') {
+      for (let k = 0; k < 4; k++) { g.fillStyle = k % 2 ? '#3d342b' : '#4a3f34'; g.fillRect(px, py + k * 4, T, 4); g.fillStyle = 'rgba(0,0,0,.4)'; g.fillRect(px, py + k * 4 + 3, T, 1); }
+    }
     if (c0 === '#' || c0 === 'D') {
       g.fillStyle = PAL.rock; g.fillRect(px, py, T, T);
       if (c0 === '#') for (let k = 0; k < 3; k++) { g.fillStyle = 'rgba(70,58,46,.18)'; g.fillRect(px + hash(x, y, k + 60) * 14, py + hash(x, y, k + 70) * 14, 2, 1); }
@@ -56,6 +72,20 @@ function buildLayer(room) {
       if (!solid(x - 1, y)) { g.fillStyle = 'rgba(90,75,60,.25)'; g.fillRect(px, py, 1, T); }
       if (!solid(x + 1, y)) { g.fillStyle = 'rgba(0,0,0,.35)'; g.fillRect(px + T - 1, py, 1, T); }
     }
+  }
+  // Fissure vein: jittered centre points joined to each fissure neighbour, wide dim glow under a thin hot line.
+  const vp = (x, y) => ({ x: (x + 0.5 + (hash(x, y, 200) - 0.5) * 0.5) * T, y: (y + 0.5 + (hash(x, y, 201) - 0.5) * 0.5) * T });
+  for (const [w, col] of [[3.5, 'rgba(224,112,42,.18)'], [1.6, 'rgba(224,112,42,.55)'], [0.6, 'rgba(255,179,107,.85)']]) {
+    g.strokeStyle = col; g.lineWidth = w; g.lineCap = 'round'; g.beginPath();
+    for (let y = 0; y < room.h; y++) for (let x = 0; x < room.w; x++) {
+      if (room.grid[y][x] !== '~') continue;
+      const a = vp(x, y);
+      // One link per tile, downward where possible, so the vein reads as a single crack rather than a mesh.
+      const nb = [[0, 1], [1, 1], [-1, 1]].filter(([dx, dy]) => tileAt(room, x + dx, y + dy) === '~');
+      const pick = nb.length ? nb[Math.floor(hash(x, y, 202) * nb.length)] : null;
+      if (pick) { const b = vp(x + pick[0], y + pick[1]); g.moveTo(a.x, a.y); g.lineTo(b.x, b.y); }
+    }
+    g.stroke();
   }
   // Sealed doors: one obsidian slab across the run of D tiles, inscribed in bone.
   const ds = []; room.grid.forEach((r, y) => r.forEach((c1, x) => c1 === 'D' && ds.push({ x, y })));
@@ -128,8 +158,8 @@ const DRAW_ITEM = {
 function lightsInView() {
   const out = [], t = G.time;
   for (const l of G.room.lights) {
-    const f = l.torch ? 1 + Math.sin(t * 9 + l.flicker) * 0.04 + Math.sin(t * 23 + l.flicker * 3) * 0.025 : 1;
-    out.push({ x: l.x, y: l.y, r: l.r * f, color: l.color, warm: l.torch ? 0.22 : 0.12 });
+    const f = l.fissure ? 1 + Math.sin(t * 1.3 + l.flicker) * 0.18 : l.torch ? 1 + Math.sin(t * 9 + l.flicker) * 0.04 + Math.sin(t * 23 + l.flicker * 3) * 0.025 : 1;
+    out.push({ x: l.x, y: l.y, r: l.r * f, color: l.color, warm: l.torch ? 0.22 : l.fissure ? 0.3 : 0.12 });
   }
   for (const a of G.actors) if (a.def.light) out.push({ x: a.x, y: a.y - 3, r: a.def.light, color: a.def.lightColor, warm: a.def.lightColor ? 0.14 : 0 });
   if (G.scene.lights) out.push(...G.scene.lights());

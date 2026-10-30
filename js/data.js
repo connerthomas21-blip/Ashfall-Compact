@@ -22,6 +22,7 @@ const WILL = { name: 'Will', speed: 76, r: 5.5, body: PAL.moss, trim: PAL.boneDi
   t  torch (light)      b  bones (decor)     o  boulder (solid)     P  party start     w  Will start
   S  Ichabod's sensing trigger              X  exit to the next scene
   D  sealed doors (solid)                   i  inscription (interact)
+  U  stairs up (solid for now)              K  Thyken in his chains (solid, interact)
 */
 const MAPS = {
   escape: {
@@ -57,6 +58,27 @@ const MAPS = {
       '####.....b.......,,,.........#',
       '######.................#######',
       '##############################',
+    ],
+  },
+  // Base of the stair: Thyken's chamber, and later Varn's arena.
+  deep: {
+    dark: 0.9,
+    rows: [
+      '##########################',
+      '###########UUUU###########',
+      '########....UU....########',
+      '######...,......,,..######',
+      '#####..t..........t..#####',
+      '####.....,....~~.......###',
+      '###.....,,...~~~~..,....##',
+      '##...w.......~~~..,,....##',
+      '##..P.....K...~~~~......##',
+      '###...........~~~.......##',
+      '####...,,......~~~...,.###',
+      '#####..........~~~~..#####',
+      '#######...,.....~~...#####',
+      '##########......~~########',
+      '##########################',
     ],
   },
 };

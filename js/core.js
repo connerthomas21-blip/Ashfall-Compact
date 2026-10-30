@@ -65,9 +65,9 @@ function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000 || 0); last = now;
   G.time += dt;
   if (G.scene) {
+    uiKeys();   // first, so a key that advances text isn't also read by the scene in the same frame
     const frozen = G.paused || G.menu || G.say;
     if (!frozen) { G.scene.update(dt); if (S) S.playtime += dt; }
-    uiKeys();
     draw();
   }
   pressed.clear();

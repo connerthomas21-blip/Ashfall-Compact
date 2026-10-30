@@ -30,9 +30,10 @@ function renderUI() {
       <p>WASD or arrows to move. 1, 2, 3 or Tab to change hero. E to examine. Space to pause. Esc for this menu.</p>
     </div>`;
   } else if (G.say) {
-    const b = G.say.blocks[G.say.i];
-    h = `<div id="say" data-a="advance">${b.who ? `<div class="who">${esc(b.who)}</div>` : ''}<p>${esc(b.text)}</p>
-      <div class="more">${G.say.i < G.say.blocks.length - 1 ? 'Continue' : 'Close'} (E, Enter or click)</div></div>`;
+    const b = G.say.blocks[G.say.i], last = G.say.i >= G.say.blocks.length - 1, ch = last && G.say.choices;
+    h = `<div id="say" ${ch ? '' : 'data-a="advance"'}>${b.who ? `<div class="who">${esc(b.who)}</div>` : ''}<p>${esc(b.text)}</p>
+      ${ch ? `<div class="choices">${ch.map((c, k) => `<button data-a="choose" data-i="${k}"><span>${k + 1}</span>${c.by ? `<em>${esc(HEROES[c.by].name)}:</em> ` : ''}${esc(c.text)}</button>`).join('')}</div>`
+        : `<div class="more">${last ? 'Close' : 'Continue'} (E, Enter or click)</div>`}</div>`;
   } else if (G.sceneId === 'escape' && S.playtime < 25) {
     h = '<div class="hint">WASD or arrows to move · 1 2 3 or Tab to change hero · Space to pause · Esc for menu</div>';
   }
@@ -42,11 +43,14 @@ function renderUI() {
 
 uiEl.addEventListener('click', e => {
   const el = e.target.closest('[data-a]'); if (!el) return;
-  act(el.dataset.a);
+  act(el.dataset.a, el.dataset);
 });
 
-function act(a) {
-  if (a === 'new') { S = fresh(); U = { screen: 'game' }; go(S.scene, { fromTitle: true }); }
+function act(a, data = {}) {
+  if (a === 'new') {
+    const dev = (location.hash.match(/scene=(\w+)/) || [])[1];   // #scene=thyken jumps straight to a scene for testing
+    S = fresh(); U = { screen: 'game' }; go(SCENES[dev] ? dev : S.scene, { fromTitle: true });
+  }
   if (a === 'continue') { S = Object.assign(fresh(), loadSaved()); U = { screen: 'game' }; go(S.scene, { noSave: true }); }
   if (a === 'load-code') { U.code = 'load'; U.err = null; renderUI(); }
   if (a === 'load-go') {
@@ -57,10 +61,12 @@ function act(a) {
   if (a === 'show-code') { U.code = 'show'; renderUI(); }
   if (a === 'to-title') { G.menu = false; G.scene = null; G.room = null; U = { screen: 'title' }; renderUI(); }
   if (a === 'advance') advanceSay();
+  if (a === 'choose') chooseOption(+data.i);
 }
 
 function advanceSay() {
   const s = G.say; if (!s) return;
+  if (s.choices && s.i >= s.blocks.length - 1) return;
   if (++s.i >= s.blocks.length) { G.say = null; s.then && s.then(); }
   renderUI();
 }
@@ -69,7 +75,12 @@ function advanceSay() {
 let hintShown = true;
 function uiKeys() {
   if (U.screen !== 'game') return;
-  if (G.say) { if (hit('KeyE', 'Enter', 'Space')) advanceSay(); return; }
+  if (G.say) {
+    const s = G.say, choosing = s.choices && s.i >= s.blocks.length - 1;
+    if (choosing) { for (let k = 0; k < s.choices.length; k++) if (hit('Digit' + (k + 1), 'Numpad' + (k + 1))) { chooseOption(k); pressed.clear(); break; } }
+    else if (hit('KeyE', 'Enter', 'Space')) { advanceSay(); pressed.clear(); }
+    return;
+  }
   if (hit('Escape')) { G.menu = !G.menu; U.code = null; renderUI(); return; }
   if (G.menu) return;
   if (hit('Space')) G.paused = !G.paused;

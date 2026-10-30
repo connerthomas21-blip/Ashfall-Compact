@@ -52,6 +52,10 @@ textarea { width: min(90%, 520px); height: 90px; background: var(--well); color:
   padding: 14px 20px 12px; font-size: clamp(14px, 1.9vw, 19px); }
 #say .who { font-family: var(--display); color: var(--ember); letter-spacing: .06em; margin-bottom: 4px; }
 #say p { margin: 0 0 .5em; }
+#say .choices { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+#say .choices button { font-family: var(--body); font-size: .95em; letter-spacing: 0; text-align: left; background: var(--well); padding: 6px 12px; }
+#say .choices button span { color: var(--ember); margin-right: 10px; font-family: var(--display); }
+#say .choices button em { color: var(--dim); }
 #say .more { text-align: right; font-size: .8em; color: var(--dim); }
 .hint { position: absolute; left: 0; right: 0; bottom: 8px; text-align: center; font-size: 14px; color: var(--dim); pointer-events: none; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
@@ -64,7 +68,9 @@ textarea { width: min(90%, 520px); height: 90px; background: var(--well); color:
 
 <script src="js/core.js"></script>
 <script src="js/data.js"></script>
+<script src="js/script.js"></script>
 <script src="js/render.js"></script>
 <script src="js/world.js"></script>
+<script src="js/dialogue.js"></script>
 <script src="js/scenes.js"></script>
 <script src="js/ui.js"></script>
