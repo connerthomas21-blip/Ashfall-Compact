@@ -53,7 +53,7 @@ const hit = (...c) => c.some(k => pressed.has(k));
 const SCENES = {};
 function go(id, opts = {}) {
   if (G.scene && G.scene.exit) G.scene.exit();
-  G.sceneId = id; G.scene = SCENES[id]; G.say = null; G.naming = null; G.paused = false; G.shake = 0; G.opening = false;
+  G.sceneId = id; G.scene = SCENES[id]; G.scene.id = id; G.say = null; G.naming = null; G.paused = false; G.shake = 0; G.opening = false;
   if (S && !opts.noSave) { S.scene = id; save(); }
   G.scene.enter(opts);
   ambience(G.scene.amb || null);

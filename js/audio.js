@@ -85,3 +85,13 @@ const SFX = {
   thud: () => noise(AU.brown, { freq: 90, gain: 0.5, dur: 0.5, attack: 0.01 }),
 };
 function sfx(name) { if (AU.ctx && !AU.muted && SFX[name]) try { SFX[name](); } catch (e) {} }
+
+Object.assign(SFX, {
+  hit: () => noise(AU.white, { filter: 'bandpass', freq: 900, q: 0.8, gain: 0.08, dur: 0.12, attack: 0.005 }),
+  smite: () => { SFX.hit(); const a = AU.ctx, o = a.createOscillator(), g = a.createGain(), t = a.currentTime; o.type = 'triangle'; o.frequency.setValueAtTime(330, t); o.frequency.exponentialRampToValueAtTime(165, t + 0.5); g.gain.setValueAtTime(0.09, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.6); o.connect(g); g.connect(AU.master); o.start(t); o.stop(t + 0.65); },
+  blast: () => noise(AU.white, { filter: 'bandpass', freq: 520, q: 2, gain: 0.07, dur: 0.25, attack: 0.01 }),
+  hex: () => noise(AU.brown, { filter: 'bandpass', freq: 300, q: 4, gain: 0.25, dur: 0.8, attack: 0.1 }),
+  pull: () => noise(AU.white, { filter: 'lowpass', freq: 700, gain: 0.08, dur: 0.35, attack: 0.15 }),
+  dash: () => noise(AU.white, { filter: 'highpass', freq: 1500, gain: 0.04, dur: 0.18, attack: 0.02 }),
+  drink: () => SFX.drip(),
+});

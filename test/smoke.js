@@ -18,6 +18,9 @@ const out = process.argv[2] || '.';
   await pg.screenshot({ path: out + '/intro.png' });
   while (await pg.$('#say')) { await pg.keyboard.press('Enter'); await pg.waitForTimeout(50); }
 
+  await pg.evaluate(() => { for (const e of liveFoes()) { e.aggro = true; hurt(e, 999); } });
+  await pg.waitForTimeout(200);
+  while (await pg.$('#say')) { await pg.keyboard.press('Enter'); await pg.waitForTimeout(50); }
   const pos = () => pg.evaluate(() => ({ lead: S.lead, x: leader().x, y: leader().y, f: followers().map(f => [f.id, Math.round(dist(f, leader()))]) }));
   const p0 = await pos();
   await pg.keyboard.down('KeyD'); await pg.waitForTimeout(900); await pg.keyboard.up('KeyD');

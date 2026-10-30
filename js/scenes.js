@@ -8,18 +8,23 @@ function roomScene(mapId, hooks = {}) {
     enter(opts) {
       G.room = buildRoom(mapId);
       spawnParty();
+      armHeroes();
+      if (G.room.foes && !(hooks.cleared && hooks.cleared())) spawnFoes(G.room.foes);
       hooks.enter && hooks.enter(opts);
     },
     update(dt) {
       updateParty(dt);
+      updateCombat(dt);
+      updateFx(dt);
       updateCamera(dt);
+      hooks.update && hooks.update(dt);
+      if (G.combat || G.wipe || G.sceneId !== this.id) { G.prompt = null; return; }
       const L = leader(), t = triggerUnder(L);
       if (t && t !== G.lastTrigger && hooks.onTrigger) hooks.onTrigger(t);
       G.lastTrigger = t;
       const it = nearestInteract(L);
       G.prompt = it ? 'E  Examine' : null;
       if (it && hit('KeyE') && hooks.onInteract) hooks.onInteract(it);
-      hooks.update && hooks.update(dt);
     },
   };
 }
@@ -27,20 +32,32 @@ function roomScene(mapId, hooks = {}) {
 // Show story text one block at a time. Each block is { who?, text } and pauses the world.
 function narrate(blocks, then) { G.say = { blocks, i: 0, then }; renderUI(); }
 
-/* ---------- Scene 1: Escape (combat tail arrives in milestone 5) ---------- */
+/* ---------- Scene 1: Escape ----------
+  The tail of a fight: the last of the dead Ichabod's book raised, between the party and the way on.
+  Flags: escape_clear (fight won), ichabod_sensed.
+*/
 SCENES.escape = roomScene('escape', {
   amb: 'cavern',
+  cleared: () => flag('escape_clear'),
   enter(opts) {
-    if (opts.fromTitle && !flag('escape_intro')) {
+    if (!flag('escape_intro')) {
       setFlag('escape_intro');
       narrate([
-        { text: 'The last of the dead lie still. Whatever Ichabod\'s book woke in the barrow, it has stopped answering the call, and the passage behind you is quiet except for the dust still settling.' },
-        { who: 'Will', text: 'The Library is this way. Stay near the lantern. The ground down here moves when it likes.' },
-      ]);
+        { text: 'Most of the dead that Ichabod\'s book raised are down again. Not all of them. The last few are still coming up the passage toward you, slow and patient, the way the dead are when they have nowhere else to be.' },
+        { who: 'will', text: 'I will keep out of your way. Finish them, and I will show you the way down.', if: { will: true } },
+        { text: 'J to strike. K and L for each hero\'s arts, H for Raiden\'s Lay on Hands, Q to drink a draught. 1, 2, 3 or Tab to change hero. Space pauses, and while paused you can change hero and give orders.' },
+      ].filter(l => cond(l.if)).map(toBlock));
     }
   },
+  onClear() {
+    setFlag('escape_clear');
+    narrate([
+      { text: 'The last of them folds down onto the stone and stays there. The passage is quiet except for the dust still settling.' },
+      { who: 'Will', text: 'The Library is this way. Stay near the lantern. The ground down here moves when it likes.' },
+    ]);
+  },
   onTrigger(t) {
-    if (t.kind === 'S' && !flag('ichabod_sensed')) {
+    if (t.kind === 'S' && !flag('ichabod_sensed') && S.party.ichabod.alive) {
       setFlag('ichabod_sensed');
       narrate([
         { text: 'Ichabod stops walking. The Tome of Four Corners is warm against his ribs, warmer than a book has any right to be.' },
@@ -150,7 +167,11 @@ function speakName(raw) {
   narrate([
     { text: 'The name falls flat against the stone and goes nowhere.' },
     { text: S.flags.door_wrong === 1 ? 'Somewhere behind you, in the dark you came through, something that was lying still is no longer lying still.' : 'Behind you, in the dark, more of the dead are getting up. You can hear the dry knock of them finding their feet.' },
-  ]);
+  ], () => {
+    // A few more undead stir with each wrong name, and come in from the passage you arrived by.
+    const p = G.room.spawns.P, n = Math.min(4, 1 + S.flags.door_wrong);
+    spawnFoes(Array.from({ length: n }, (_, i) => ({ kind: i === 3 ? 'husk' : 'risen', x: p.x - 4 + (i % 2) * 10, y: p.y - 10 + i * 8 })), true);
+  });
 }
 
 // Doors drawn live so they can open: two halves of the slab slide apart, three seals light as names are spoken.

@@ -38,6 +38,8 @@ const out = process.argv[2] || '.';
   await speak('Omnisiah');
   await skip();
   if ((await flags()).door_wrong !== 1) fail('wrong guess not counted');
+  if (!(await pg.evaluate(() => liveFoes().length))) fail('wrong guess woke no undead');
+  await pg.evaluate(() => { for (const e of liveFoes()) hurt(e, 999); }); await pg.waitForTimeout(900); await skip();
   await speak("kael'vahr"); await skip();
   await speak('DINAS'); await skip();
   await examine('i'); await choose('speak'); await skip();

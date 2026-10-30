@@ -182,7 +182,10 @@ function paintInlay(g, room, d) {
 function drawActor(g, a) {
   const d = a.def, r = a.r, bob = a.moving ? Math.sin(a.walk) * 0.7 : 0, fa = Math.atan2(a.face.y, a.face.x);
   const isLead = a.hero && a.id === S.lead;
+  if (a.down) return drawDowned(g, a);
   g.save(); g.translate(a.x, a.y);
+  if (a.st && a.st.prone > 0) { g.scale(1.25, 0.6); }
+  if (a.st && a.st.invuln > 0) g.globalAlpha = 0.55;
   g.fillStyle = 'rgba(0,0,0,.45)'; g.beginPath(); g.ellipse(0, r * 0.55, r * 1.1, r * 0.5, 0, 0, 7); g.fill();
   if (isLead) { g.strokeStyle = 'rgba(224,112,42,.75)'; g.lineWidth = 1; g.beginPath(); g.ellipse(0, r * 0.55, r * 1.5, r * 0.75, 0, 0, 7); g.stroke(); }
   g.translate(0, -r * 0.4 + bob);
@@ -199,7 +202,92 @@ function drawActor(g, a) {
   g.fillStyle = HEAD[a.id] || '#2a2420'; g.beginPath(); g.arc(hx, hy, r * 0.55, 0, 7); g.fill(); g.stroke();
   if (a.id === 'raiden') { g.fillStyle = PAL.bone; g.fillRect(hx - 2 + a.face.x * 1.2, hy - 0.4 + a.face.y, 4, 0.9); }
   if (!behind) items();
+  if (a.swing) drawSwing(g, a);
+  if (a.flash > 0) { g.globalCompositeOperation = 'lighter'; g.fillStyle = `rgba(255,120,90,${a.flash * 3})`; g.beginPath(); g.ellipse(0, 0, r, r * 0.85, 0, 0, 7); g.fill(); }
   g.restore();
+}
+function drawDowned(g, a) {
+  g.save(); g.translate(a.x, a.y);
+  g.fillStyle = 'rgba(0,0,0,.4)'; g.beginPath(); g.ellipse(0, 1, a.r * 1.4, a.r * 0.6, 0, 0, 7); g.fill();
+  g.fillStyle = a.def.body; g.globalAlpha = 0.75; g.beginPath(); g.ellipse(0, 0, a.r * 1.3, a.r * 0.55, 0.2, 0, 7); g.fill();
+  g.fillStyle = HEAD[a.id]; g.beginPath(); g.arc(a.r * 1.1, -1, a.r * 0.45, 0, 7); g.fill();
+  g.restore();
+}
+function drawSwing(g, a) {
+  const an = Math.atan2(a.face.y, a.face.x), k = a.swing.t / 0.18, rr = a.r + (a.swing.big ? 11 : 7);
+  g.strokeStyle = a.swing.big ? `rgba(255,220,170,${k})` : `rgba(216,205,180,${k * 0.8})`; g.lineWidth = a.swing.big ? 2 : 1.2;
+  g.beginPath(); g.arc(0, 0, rr, an - 0.9 + (1 - k) * 0.6, an + 0.9 - k * 0.4); g.stroke();
+}
+// Raiden's Shield Ally: a pale tether from the ward to Raiden.
+function drawGuard(g, h) {
+  const by = h.st.guard.by; if (!by || by.down) return;
+  g.strokeStyle = 'rgba(216,205,180,.45)'; g.lineWidth = 0.8; g.setLineDash([2, 2]);
+  g.beginPath(); g.moveTo(h.x, h.y - 2); g.lineTo(by.x, by.y - 2); g.stroke(); g.setLineDash([]);
+  g.strokeStyle = 'rgba(216,205,180,.6)'; g.beginPath(); g.arc(h.x, h.y - 2, h.r + 3, 0, 7); g.stroke();
+}
+function drawBar(g, a) {
+  const w = a.r * 2.6, x = a.x - w / 2, y = a.y - a.r * 2.2 - 3;
+  g.fillStyle = 'rgba(0,0,0,.7)'; g.fillRect(x - 0.5, y - 0.5, w + 1, 2.4);
+  g.fillStyle = a.id === 'foe' ? '#a8462e' : '#9db06a'; g.fillRect(x, y, w * a.hp / a.maxHp, 1.4);
+}
+
+/* ---------- Foes ---------- */
+// Risen: hunched, bone and rag, ember pinpoints for eyes. Husk: a bigger, earth-caked dead thing.
+function drawFoe(g, e) {
+  const r = e.r, husk = e.kind === 'husk', fade = e.dead ? 1 - e.deadT / 0.8 : 1;
+  const bob = e.moving ? Math.sin(e.walk) * 0.6 : 0, wind = e.state === 'windup' ? 1 - e.t / e.def.windup : 0;
+  g.save(); g.translate(e.x, e.y); g.globalAlpha = Math.max(0, fade);
+  if (e.dead) g.scale(1 + e.deadT, 1 - e.deadT * 0.8);
+  if (e.st.prone > 0) g.scale(1.25, 0.6);
+  g.fillStyle = 'rgba(0,0,0,.45)'; g.beginPath(); g.ellipse(0, r * 0.55, r * 1.1, r * 0.5, 0, 0, 7); g.fill();
+  g.translate(0, -r * 0.4 + bob - wind * 1.5);
+  g.fillStyle = husk ? '#4a3d30' : '#8f846f'; g.beginPath(); g.ellipse(0, 0, r, r * 0.8, 0, 0, 7); g.fill();
+  g.strokeStyle = 'rgba(0,0,0,.65)'; g.lineWidth = 0.8; g.stroke();
+  g.fillStyle = husk ? '#2e251d' : '#3a302a'; g.beginPath(); g.ellipse(0, r * 0.25, r * 0.95, r * 0.45, 0, 0, Math.PI); g.fill();   // rags / caked earth
+  if (!husk) { g.strokeStyle = 'rgba(40,32,26,.8)'; g.lineWidth = 0.6; for (const yy of [-2, 0, 2]) { g.beginPath(); g.moveTo(-r * 0.5, yy); g.lineTo(r * 0.5, yy); g.stroke(); } }
+  // arms raise during the wind-up
+  const fa = Math.atan2(e.face.y, e.face.x);
+  g.strokeStyle = husk ? '#5a4a3a' : '#a89c84'; g.lineWidth = husk ? 2.2 : 1.2; g.lineCap = 'round';
+  for (const s of [-1, 1]) { const a2 = fa + s * (0.9 - wind * 0.6); g.beginPath(); g.moveTo(Math.cos(fa + s * 1.4) * r * 0.7, Math.sin(fa + s * 1.4) * r * 0.6); g.lineTo(Math.cos(a2) * (r + 2 + wind * 3), Math.sin(a2) * (r + 2 + wind * 3) - wind * 2); g.stroke(); }
+  const hx = e.face.x * 1.2, hy = -r * 0.7 + e.face.y * 0.8;
+  g.fillStyle = husk ? '#3d3228' : '#c8bda3'; g.beginPath(); g.arc(hx, hy, r * 0.5, 0, 7); g.fill(); g.stroke();
+  if (e.face.y > -0.3) { g.fillStyle = PAL.ember; g.fillRect(hx - 1.6 + e.face.x, hy - 0.3, 0.9, 0.9); g.fillRect(hx + 0.7 + e.face.x, hy - 0.3, 0.9, 0.9); }
+  if (e.st.hexed > 0) { g.strokeStyle = `rgba(224,112,42,${0.6 + Math.sin(G.time * 6) * 0.3})`; g.lineWidth = 0.7; g.beginPath(); g.arc(hx, hy - r * 0.9, 1.8, 0, 7); g.moveTo(hx - 2.5, hy - r * 0.9); g.lineTo(hx + 2.5, hy - r * 0.9); g.stroke(); }
+  if (e.flash > 0) { g.globalCompositeOperation = 'lighter'; g.fillStyle = `rgba(255,240,220,${e.flash * 3})`; g.beginPath(); g.ellipse(0, 0, r, r * 0.8, 0, 0, 7); g.fill(); }
+  g.restore();
+}
+// Wind-up warnings on the ground: a wedge for a strike, a filling circle for a slam.
+function drawTelegraph(g, e) {
+  if (e.dead || e.state !== 'windup' || !e.aim || e.drawTele === false) return;
+  const k = 1 - e.t / e.def.windup, d = e.def;
+  g.save();
+  if (d.aoe) {
+    const sx = e.x + e.aim.x * d.reach * 0.8, sy = e.y + e.aim.y * d.reach * 0.8;
+    g.fillStyle = `rgba(224,112,42,${0.08 + k * 0.12})`; g.beginPath(); g.arc(sx, sy, d.aoe, 0, 7); g.fill();
+    g.strokeStyle = 'rgba(224,112,42,.6)'; g.lineWidth = 0.8; g.beginPath(); g.arc(sx, sy, d.aoe * k, 0, 7); g.stroke();
+  } else {
+    const an = Math.atan2(e.aim.y, e.aim.x);
+    g.fillStyle = `rgba(216,205,180,${0.06 + k * 0.14})`; g.beginPath(); g.moveTo(e.x, e.y); g.arc(e.x, e.y, d.reach + 8, an - 0.7, an + 0.7); g.closePath(); g.fill();
+  }
+  g.restore();
+}
+function drawShots(g) {
+  for (const s of G.shots || []) {
+    g.strokeStyle = 'rgba(224,112,42,.5)'; g.lineWidth = 2; g.beginPath(); g.moveTo(s.x - s.vx * 0.03, s.y - s.vy * 0.03); g.lineTo(s.x, s.y); g.stroke();
+    g.fillStyle = PAL.emberHot; g.beginPath(); g.arc(s.x, s.y, 1.8, 0, 7); g.fill();
+  }
+}
+function drawFx(g) {
+  for (const f of G.fx || []) {
+    const k = f.t / f.life;
+    if (f.kind === 'spark') { g.fillStyle = hexA(f.color, 1 - k); g.fillRect(f.x - 0.6, f.y - 0.6, 1.2, 1.2); }
+    if (f.kind === 'ring') { g.strokeStyle = hexA(f.color, 0.7 * (1 - k)); g.lineWidth = 1; g.beginPath(); g.arc(f.x, f.y, f.r * (0.4 + k * 0.8), 0, 7); g.stroke(); }
+    if (f.kind === 'text') {
+      g.font = `${f.big ? 9 : 7}px "EB Garamond", Georgia, serif`; g.textAlign = 'center';
+      g.fillStyle = 'rgba(0,0,0,.7)'; g.fillText(f.text, f.x + 0.5, f.y + 0.5);
+      g.fillStyle = f.color.startsWith('#') ? hexA(f.color, 1 - k * k) : f.color; g.fillText(f.text, f.x, f.y); g.textAlign = 'left';
+    }
+  }
 }
 const HEAD = { raiden: '#6f6c66', ichabod: '#1c1619', kieran: '#3d3024', will: '#3f453a' };
 const DRAW_BODY = {
@@ -240,6 +328,7 @@ function lightsInView() {
     out.push({ x: l.x, y: l.y, r: l.r * f, color: l.color, warm: l.torch ? 0.22 : l.fissure ? 0.3 : 0.08 });
   }
   for (const a of G.actors) if (a.def.light) out.push({ x: a.x, y: a.y - 3, r: a.def.light, color: a.def.lightColor, warm: a.def.lightColor ? 0.14 : 0 });
+  for (const sh of G.shots || []) out.push({ x: sh.x, y: sh.y, r: 26, color: PAL.ember, warm: 0.25 });
   if (G.scene.lights) out.push(...G.scene.lights());
   return out.filter(l => l.x + l.r > G.cam.x && l.x - l.r < G.cam.x + W && l.y + l.r > G.cam.y && l.y - l.r < G.cam.y + H);
 }
@@ -281,31 +370,72 @@ function draw() {
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = '#000'; ctx.fillRect(0, 0, cv.width, cv.height);
   const room = G.room; if (!room) return;
   if (!room.layer) room.layer = buildLayer(room);
-  const sh = G.shake && !RM ? G.shake : 0;
+  const sh = RM ? 0 : Math.max(G.shake || 0, G.shakeT > 0 ? G.shakeAmt : 0);
   const cx = Math.round((G.cam.x + (Math.random() - 0.5) * sh * 2) * SCALE) / SCALE, cy = Math.round((G.cam.y + (Math.random() - 0.5) * sh * 2) * SCALE) / SCALE;
   const cam0 = { ...G.cam }; G.cam.x = cx; G.cam.y = cy;   // lighting uses the shaken camera too
   ctx.setTransform(SCALE, 0, 0, SCALE, -cx * SCALE, -cy * SCALE);
   ctx.drawImage(room.layer, 0, 0, room.layer.width / SCALE, room.layer.height / SCALE);
   for (const l of room.lights) if (l.torch) drawTorch(ctx, l);
   if (G.scene.drawUnder) G.scene.drawUnder(ctx);
-  [...G.actors].sort((a, b) => a.y - b.y).forEach(a => drawActor(ctx, a));
+  for (const e of G.enemies || []) drawTelegraph(ctx, e);
+  for (const h of heroes()) if (h.st && h.st.guard) drawGuard(ctx, h);
+  [...G.actors, ...(G.enemies || [])].sort((a, b) => a.y - b.y).forEach(a => a.id === 'foe' ? (a.draw || drawFoe)(ctx, a) : drawActor(ctx, a));
   if (G.scene.drawOver) G.scene.drawOver(ctx);
+  drawShots(ctx);
   drawLighting(lightsInView());
+  drawFx(ctx);
+  for (const a of [...heroes(), ...(G.enemies || [])]) if (G.combat && !a.dead && !a.boss && a.hp < a.maxHp) drawBar(ctx, a);
   Object.assign(G.cam, cam0);
   ctx.setTransform(SCALE, 0, 0, SCALE, 0, 0);
   drawHUD(ctx);
+}
+
+// The controlled hero's keys with cooldown shading, plus faith, the healing pool and draughts.
+function drawSkillBar(g) {
+  const L = leader(); if (!L || !L.cd) return;
+  const keys = ['j', 'k', 'l', 'h'].filter(k => SKILLS[L.id][k]);
+  let x = 6; const y = H - 24;
+  g.font = '6.5px "EB Garamond", Georgia, serif'; g.textBaseline = 'middle';
+  for (const k of keys) {
+    const name = SKILLS[L.id][k], w = g.measureText(name).width + 16, cd = L.cd[k] / SKILL_CD[L.id][k];
+    const spent = (k === 'k' && L.id === 'raiden' && L.faith <= 0) || (k === 'h' && L.pool <= 0);
+    g.fillStyle = 'rgba(16,13,12,.85)'; g.fillRect(x, y, w, 13);
+    if (cd > 0) { g.fillStyle = 'rgba(224,112,42,.18)'; g.fillRect(x, y, w * cd, 13); }
+    g.strokeStyle = L.queued === k ? PAL.ember : '#3a3027'; g.lineWidth = 0.6; g.strokeRect(x + 0.3, y + 0.3, w - 0.6, 12.4);
+    g.fillStyle = PAL.ember; g.fillText(k.toUpperCase(), x + 4, y + 7);
+    g.fillStyle = spent ? '#5a5046' : cd > 0 ? PAL.boneDim : PAL.bone; g.fillText(name, x + 12, y + 7);
+    x += w + 3;
+  }
+  const extra = [];
+  if (L.id === 'raiden') extra.push(`Faith ${L.faith}`, `Pool ${L.pool}`);
+  if (S.inv.draught) extra.push(`Q Draught ×${S.inv.draught}`);
+  if (extra.length) { g.fillStyle = PAL.boneDim; g.fillText(extra.join('   '), x + 4, y + 7); }
+  g.textBaseline = 'alphabetic';
 }
 
 function drawHUD(g) {
   g.font = '7px "EB Garamond", Georgia, serif'; g.textBaseline = 'middle';
   HERO_ORDER.forEach((id, i) => {
     const x = 6 + i * 62, y = 6, alive = S.party[id].alive, lead = id === S.lead;
-    g.fillStyle = 'rgba(16,13,12,.82)'; g.fillRect(x, y, 58, 14);
-    g.strokeStyle = lead ? PAL.ember : '#3a3027'; g.lineWidth = lead ? 0.8 : 0.5; g.strokeRect(x + 0.25, y + 0.25, 57.5, 13.5);
+    g.fillStyle = 'rgba(16,13,12,.82)'; g.fillRect(x, y, 58, 18);
+    g.strokeStyle = lead ? PAL.ember : '#3a3027'; g.lineWidth = lead ? 0.8 : 0.5; g.strokeRect(x + 0.25, y + 0.25, 57.5, 17.5);
     g.fillStyle = lead ? PAL.ember : PAL.boneDim; g.fillText(HEROES[id].key, x + 4, y + 7.5);
     g.fillStyle = alive ? (lead ? PAL.bone : PAL.boneDim) : '#5a5046'; g.fillText(HEROES[id].name, x + 11, y + 7.5);
     if (!alive) { g.fillStyle = '#5a5046'; g.fillRect(x + 10, y + 7, 30, 0.5); }
+    const h = G.party && G.party[id];
+    if (h && h.maxHp) {
+      g.fillStyle = 'rgba(0,0,0,.6)'; g.fillRect(x + 1, y + 15, 56, 2);
+      g.fillStyle = h.down ? '#5a5046' : h.hp / h.maxHp < 0.35 ? '#c2563c' : '#8fa05c'; g.fillRect(x + 1, y + 15, 56 * h.hp / h.maxHp, 2);
+      if (h.down) { g.fillStyle = '#c2563c'; g.fillText('down', x + 40, y + 7.5); }
+    }
   });
+  if (G.party && (G.combat || (G.enemies || []).some(e => !e.dead))) drawSkillBar(g);
+  if (G.wipe) {
+    g.fillStyle = `rgba(0,0,0,${Math.min(0.85, G.wipe.t / 1.5)})`; g.fillRect(0, 0, W, H);
+    g.font = '12px "IM Fell English SC", Georgia, serif'; g.textAlign = 'center'; g.fillStyle = PAL.bone;
+    g.fillText('The dark closes over you.', W / 2, H / 2 - 4);
+    g.font = '7px "EB Garamond", Georgia, serif'; g.fillStyle = PAL.boneDim; g.fillText('The fight begins again.', W / 2, H / 2 + 10); g.textAlign = 'left';
+  }
   if (G.prompt && !G.say && !G.naming && !G.menu) {
     g.font = '8px "EB Garamond", Georgia, serif'; g.textAlign = 'center'; g.fillStyle = 'rgba(16,13,12,.8)';
     const w = g.measureText(G.prompt).width + 12; g.fillRect(W / 2 - w / 2, H - 22, w, 13);
@@ -315,7 +445,7 @@ function drawHUD(g) {
     g.fillStyle = 'rgba(0,0,0,.45)'; g.fillRect(0, 0, W, H);
     g.font = '12px "IM Fell English SC", Georgia, serif'; g.textAlign = 'center'; g.fillStyle = PAL.bone;
     g.fillText('Paused', W / 2, H / 2 - 6);
-    g.font = '7px "EB Garamond", Georgia, serif'; g.fillStyle = PAL.boneDim; g.fillText('Space to resume', W / 2, H / 2 + 8);
+    g.font = '7px "EB Garamond", Georgia, serif'; g.fillStyle = PAL.boneDim; g.fillText(G.combat || liveFoes().length ? 'Change hero with 1 2 3, queue an order with J K L H, Space to resume' : 'Space to resume', W / 2, H / 2 + 8);
     g.textAlign = 'left';
   }
 }

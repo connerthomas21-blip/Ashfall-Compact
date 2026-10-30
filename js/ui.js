@@ -43,7 +43,7 @@ function renderUI() {
     h = `<div id="say" ${ch ? '' : 'data-a="advance"'}>${b.who ? `<div class="who">${esc(b.who)}</div>` : ''}<p>${esc(b.text)}</p>
       ${ch ? `<div class="choices">${ch.map((c, k) => `<button data-a="choose" data-i="${k}"><span>${k + 1}</span>${c.by ? `<em>${esc(HEROES[c.by].name)}:</em> ` : ''}${esc(c.text)}</button>`).join('')}</div>`
         : `<div class="more">${last ? 'Close' : 'Continue'} (E, Enter or click)</div>`}</div>`;
-  } else if (G.sceneId === 'escape' && S.playtime < 25) {
+  } else if (hintWanted()) {
     h = '<div class="hint">WASD or arrows to move · 1 2 3 or Tab to change hero · Space to pause · Esc for menu</div>';
   }
   uiEl.innerHTML = h;
@@ -89,6 +89,8 @@ function advanceSay() {
   renderUI();
 }
 
+const hintWanted = () => G.sceneId === 'escape' && S.playtime < 40 && !G.combat && !liveFoes().length;
+
 // Keys that work while the world is frozen. Called every frame by the loop.
 let hintShown = true;
 function uiKeys() {
@@ -104,8 +106,15 @@ function uiKeys() {
   if (hit('Escape')) { G.menu = !G.menu; U.code = null; renderUI(); return; }
   if (G.menu) return;
   if (hit('Space')) G.paused = !G.paused;
+  // Orders while paused: change hero, or queue an ability for the current hero to use the moment play resumes.
+  if (G.paused && G.party) {
+    for (const id of HERO_ORDER) if (hit('Digit' + HEROES[id].key)) setLead(id);
+    if (hit('Tab')) cycleLead(1);
+    const L = leader();
+    for (const k of ['j', 'k', 'l', 'h']) if (hit('Key' + k.toUpperCase()) && L && SKILLS[L.id][k]) L.queued = L.queued === k ? null : k;
+  }
   // Drop the controls hint once it has had its time on screen.
-  const want = G.sceneId === 'escape' && S.playtime < 25;
+  const want = hintWanted();
   if (want !== hintShown) { hintShown = want; renderUI(); }
 }
 

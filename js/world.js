@@ -3,6 +3,7 @@
 
 const SOLID = new Set(['#', 'D', 'o', '~', 'U', 'K', 'B', 'E', 'L', 'M', 'R']);
 const SLOW = new Set([',']);
+const FOE_TILES = { r: 'risen', u: 'husk' };
 const TRIGGERS = 'SXiKcamnqLMRZv', INTERACT = 'iKcamnqLMRZ';   // see the map legend in js/data.js
 
 function buildRoom(id) {
@@ -17,6 +18,7 @@ function buildRoom(id) {
       if (c === 'h') room.lights.push({ x: cx, y: cy - 4, r: 58, color: '#f2b36a', flicker: Math.random() * 10, torch: true, candle: true });
       if (c === 't') room.lights.push({ x: cx, y: cy, r: 92, color: PAL.ember, flicker: Math.random() * 10, torch: true });
       if (c === 'P' || c === 'w') room.spawns[c] = { x: cx, y: cy };
+      if (FOE_TILES[c]) { (room.foes = room.foes || []).push({ kind: FOE_TILES[c], x: cx, y: cy }); row[row.length - 1] = '.'; }
       if (TRIGGERS.includes(c)) room.triggers.push({ kind: c, x: cx, y: cy, tx: x, ty: y });
       // The fissure breathes ember light; one light per few tiles is enough.
       if (c === '~' && (x + y * 3) % 4 === 0) room.lights.push({ x: cx, y: cy, r: 40, color: PAL.ember, flicker: Math.random() * 10, fissure: true });
@@ -68,12 +70,13 @@ const leader = () => G.party[S.lead];
 const followers = () => [...HERO_ORDER.filter(id => id !== S.lead && G.party[id]).map(id => G.party[id]), ...(G.will ? [G.will] : [])];
 
 function setLead(id) {
-  if (!G.party[id] || id === S.lead) return;
+  if (!G.party[id] || id === S.lead || G.party[id].down) return;
   S.lead = id;
   G.trail.push({ x: G.party[id].x, y: G.party[id].y });
 }
 function cycleLead(dir = 1) {
-  const live = HERO_ORDER.filter(id => G.party[id]);
+  const live = HERO_ORDER.filter(id => G.party[id] && !G.party[id].down);
+  if (!live.length) return;
   setLead(live[(live.indexOf(S.lead) + dir + live.length) % live.length]);
 }
 
@@ -91,11 +94,13 @@ function updateParty(dt) {
   for (const id of HERO_ORDER) if (hit('Digit' + HEROES[id].key, 'Numpad' + HEROES[id].key)) setLead(id);
   if (hit('Tab')) cycleLead(keys.has('ShiftLeft') || keys.has('ShiftRight') ? -1 : 1);
 
+  if (G.combat || liveFoes().length) leaderCombatKeys(L);
   // Leader movement
+  const stuck = !alive(L) || L.st.prone > 0 || L.dashing;
   let ix = (held('KeyD', 'ArrowRight') ? 1 : 0) - (held('KeyA', 'ArrowLeft') ? 1 : 0);
   let iy = (held('KeyS', 'ArrowDown') ? 1 : 0) - (held('KeyW', 'ArrowUp') ? 1 : 0);
-  const m = Math.hypot(ix, iy);
-  L.moving = m > 0;
+  const m = stuck ? 0 : Math.hypot(ix, iy);
+  if (!L.dashing) L.moving = m > 0;
   if (m) {
     ix /= m; iy /= m;
     const sp = L.def.speed * slowAt(L) * dt;
@@ -107,13 +112,25 @@ function updateParty(dt) {
   if (!tail || Math.hypot(L.x - tail.x, L.y - tail.y) > 5) { G.trail.push({ x: L.x, y: L.y }); if (G.trail.length > 240) G.trail.shift(); }
 
   followers().forEach((f, k) => {
+    if (f.down) return;
+    if (f.hero && G.combat && allyAI(f, dt)) return;
+    if (f === G.will && G.combat) return hideWill(f, dt);
     const back = (k + 1) * 4, crumb = G.trail[G.trail.length - 1 - back] || G.trail[0] || L;
     const dL = dist(f, L);
     if (dL > 220) { f.x = crumb.x; f.y = crumb.y; return; }       // lost: catch up out of sight
     if (dL < 14 + k * 6 || dist(f, crumb) < 3) { f.moving = false; return; }
     stepToward(f, crumb.x, crumb.y, f.def.speed * (dL > 60 ? 1.35 : 1.05), dt);
   });
-  separate(G.actors);
+  if (!G.combat) separate(G.actors.filter(a => !a.down));
+}
+
+// Will is not a fighter: during a fight he backs away from the nearest foe, toward where he started.
+function hideWill(w, dt) {
+  const n = nearestFoe(w); if (!n) return;
+  const d = dist(w, n);
+  if (d > 90) { w.moving = false; return; }
+  const sp = G.room.spawns.w || w, ax = w.x + (w.x - n.x) / (d || 1) * 40 + (sp.x - w.x) * 0.2, ay = w.y + (w.y - n.y) / (d || 1) * 40 + (sp.y - w.y) * 0.2;
+  stepToward(w, ax, ay, w.def.speed, dt);
 }
 
 // Push overlapping actors apart (the leader yields least).
