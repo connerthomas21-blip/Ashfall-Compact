@@ -225,3 +225,100 @@ DIALOGUES.doors = {
     leave: { lines: [{ text: 'You step back from the doors.' }], end: true },
   },
 };
+
+/* ---------- Scene 3: The Library ----------
+  Flags: took_sea_prayer / left_sea_prayers (sequel hook for Mariveth's restoration), read_ledger, saw_buried_wall, loot_<n>.
+*/
+DIALOGUES.library_enter = {
+  start: 'a',
+  nodes: {
+    a: {
+      lines: [
+        { text: 'Past the doors, the air changes. You expect the smell of old paper and get fresh dirt instead, wet and close, as if the Library had been dug rather than built.' },
+        { text: 'Shelves run away from you in rows that do not seem to end, out past the reach of any light you have. Overhead, the dome that held all of this has cracked open down its middle, and the crack runs on down through the floor and keeps going. The far side has come in entirely. Earth has poured through like grain from a split sack, and under the earth, everywhere, are books.' },
+        { text: 'At the centre, where the fissure runs closest, a staircase goes down into the dark.' },
+        { who: 'ichabod', text: 'The one I felt is below us. Closer now. And whatever is flaring under him is closer too.', if: { alive: 'ichabod' } },
+      ],
+      end: true,
+    },
+  },
+};
+
+DIALOGUES.mariveth_shelf = {
+  start: 'a',
+  nodes: {
+    a: {
+      lines: [
+        { text: 'One shelf is dry. The earth that has got into everything else stops a hand\'s width short of it, and the books on it are whole: tide-charts, hand-drawn and coloured with care, and thin books of prayers written for the sea.' },
+        { text: 'Each spine carries the same small mark, a wave, and beside it a name you now know how to read. Mariveth.', if: { has: 'knows_mariveth' } },
+        { text: 'Each spine carries the same small mark, a wave, and beside it a name that has been scraped away.', if: { not: 'knows_mariveth' } },
+        { text: 'One prayer lies loose on top of the charts, as if someone set it down meaning to come back for it.' },
+        { who: 'Prayer', text: '"Take what I pour out and carry it home. I do not ask where home is. You know."' },
+        { who: 'raiden', text: 'Whoever kept these down here was risking a pyre.', if: { alive: 'raiden' } },
+      ],
+      choices: [
+        { text: 'Take the prayer.', go: 'take' },
+        { text: 'Leave it where it was left.', go: 'leave' },
+      ],
+    },
+    take: {
+      set: { took_sea_prayer: true },
+      lines: [{ text: 'You fold the prayer small and keep it close. It weighs nothing at all, and it is cool against you, the way a stone is cool when it has come out of a river.' }],
+      end: true,
+    },
+    leave: {
+      set: { left_sea_prayers: true },
+      lines: [{ text: 'You leave it. Someone kept this shelf dry for a very long time. It seems wrong to be the one who starts taking from it.' }],
+      end: true,
+    },
+    again: { lines: [{ text: 'The sea shelf is as dry as it was, and as quiet.' }], end: true },
+  },
+};
+
+DIALOGUES.reading_stand = {
+  start: 'a',
+  nodes: {
+    a: {
+      set: { read_ledger: true },
+      lines: [
+        { text: 'The book on the stand is a ledger, open near its end. The hand is careful and cramped, and it gets less steady toward the bottom of the page.' },
+        { who: 'Ledger', text: '"Water seeping through the east wall again. Moved the sea charts. They are always the first thing I move."' },
+        { who: 'Ledger', text: '"The ground has been talking all month. I know whose voice that is. I have not answered."' },
+        { who: 'Ledger', text: '"He came through the floor, not the door. In all my years, nobody has ever come through the floor."' },
+        { text: 'The entry stops there. The pen lies in the gutter of the book, its nib dry.' },
+      ],
+      end: true,
+    },
+  },
+};
+
+DIALOGUES.buried_wall = {
+  start: 'a',
+  nodes: {
+    a: {
+      set: { saw_buried_wall: true },
+      lines: [
+        { text: 'Here the dome came down. The earth stands higher than your head and leans, still settling, and books show through it everywhere, spines out, like the ribs of something buried too shallow.' },
+        { who: 'kieran', text: 'How many, do you think?', if: { alive: 'kieran' } },
+        { who: 'ichabod', text: 'All of the ones that mattered, probably. That is usually how it goes.', if: { alive: 'ichabod' } },
+        { text: 'Somewhere inside the mound, something shifts and a little dirt runs down the face of it, and then it is still again.' },
+      ],
+      end: true,
+    },
+  },
+};
+
+// Loot on the Library shelves, in map order (top to bottom, left to right). Effects are wired in at milestone 5.
+const LOOT = [
+  { relic: 'ember_ink', name: 'Ember ink', note: 'Ichabod\'s Eldritch Blast hits harder.',
+    lines: [{ text: 'A sealed inkwell, warm to the touch. The ink moves when it is tilted, slower than ink should, and glows at the edges like a coal.' },
+            { who: 'ichabod', text: 'Her scribes wrote in this. It remembers what fire is for.', if: { alive: 'ichabod' } }] },
+  { relic: 'whetstone', name: 'Black-glass whetstone', note: 'Kieran\'s Sneak Attack cuts deeper.',
+    lines: [{ text: 'A whetstone of black glass, worn into a curve by long use. Drawn along an edge, it leaves the steel cold.' },
+            { who: 'kieran', text: 'Same stone as those chains, I\'d bet. Might as well make it work for us.', if: { alive: 'kieran' } }] },
+  { item: 'draught', n: 2, name: 'Bitter draughts', note: 'Two draughts. Each one heals a hero in a fight.',
+    lines: [{ text: 'Behind a row of ledgers, two stoppered bottles of something dark and bitter-smelling. A Keeper\'s remedy. It has not spoiled; nothing down here seems to.' }] },
+  { relic: 'litany', name: 'Warden\'s Litany', note: 'Raiden\'s Lay on Hands heals more.',
+    lines: [{ text: 'A small book of prayers for the dying. Its margins are full of a dozen different hands, each adding its own. Some of the prayers are to the Omnisiah. Some are older.' },
+            { who: 'raiden', text: 'I know some of these. Not all of them.', if: { alive: 'raiden' } }] },
+];

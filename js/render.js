@@ -83,6 +83,43 @@ function buildLayer(room) {
       g.strokeStyle = 'rgba(30,24,20,.6)'; g.lineWidth = 0.5; for (let k = 0; k < 7; k++) { g.beginPath(); g.moveTo(px + 1 + k * 2, py - 5); g.lineTo(px + 3 + k * 2, py + 1); g.stroke(); }
       g.fillStyle = 'rgba(216,205,180,.5)'; g.fillRect(px + 2, py - 3, 1, 2); g.fillRect(px + 4, py - 3, 1, 2);
     }
+    if (c0 === 'k') {   // fallen books
+      for (let k = 0; k < 3; k++) {
+        const bx = px + 2 + hash(x, y, k + 400) * 10, by = py + 2 + hash(x, y, k + 410) * 10, cols = ['#5a3a2a', '#3f4a3a', '#6b5a46', '#4a2f2f'];
+        g.save(); g.translate(bx, by); g.rotate(hash(x, y, k + 420) * 3);
+        g.fillStyle = cols[k % 4]; g.fillRect(-2.5, -1.8, 5, 3.6); g.fillStyle = 'rgba(216,205,180,.5)'; g.fillRect(-2.2, -1.5, 0.6, 3); g.restore();
+      }
+    }
+    if (c0 === 'E') {   // collapsed earth: packed dirt with buried spines showing
+      g.fillStyle = '#3a2e24'; g.fillRect(px, py, T, T);
+      g.fillStyle = '#4a3b2e'; g.beginPath(); g.ellipse(px + 8, py + 6, 8, 5, hash(x, y, 430), 0, 7); g.fill();
+      if (hash(x, y, 431) < 0.45) { g.fillStyle = ['#5a3a2a', '#3f4a3a', '#6b5a46'][Math.floor(hash(x, y, 432) * 3)]; g.save(); g.translate(px + 4 + hash(x, y, 433) * 8, py + 6 + hash(x, y, 434) * 6); g.rotate(hash(x, y, 435) * 2 - 1); g.fillRect(-1.2, -3, 2.4, 6); g.restore(); }
+      if (!SOLID.has(tileAt(room, x, y + 1))) { g.fillStyle = 'rgba(0,0,0,.35)'; g.fillRect(px, py + T - 2, T, 2); }
+    }
+    if ('BLM'.includes(c0)) {   // bookshelf seen from above: dark wood frame packed with spines
+      g.fillStyle = '#1f1611'; g.fillRect(px, py + 1, T, T - 2);
+      const spines = c0 === 'M' ? ['#4e5f63', '#5d6e6a', '#6f7f7a', '#3f5156'] : ['#4a2f24', '#3b3a2c', '#5a4632', '#2e3330', '#5b3a33', '#46402e'];
+      for (let k = 0; k < 5; k++) {
+        if (c0 === 'L' || c0 === 'M' || hash(x, y, k + 440) > 0.12) { g.fillStyle = spines[Math.floor(hash(x, y, k + 450) * spines.length)]; g.fillRect(px + 1 + k * 3, py + 3, 2.4, T - 6); }
+      }
+      g.fillStyle = '#2c2018'; g.fillRect(px, py + 1, T, 1.5); g.fillRect(px, py + T - 2.5, T, 1.5);
+      if (c0 === 'M') { g.fillStyle = 'rgba(169,196,192,.35)'; g.fillRect(px + 1, py + 2, T - 2, 1); }
+      if (c0 === 'L') { g.fillStyle = 'rgba(216,205,180,.55)'; g.fillRect(px + 6, py + 6, 4, 3); }   // something left on the shelf
+    }
+    if (c0 === 'R') {   // reading stand with an open book
+      g.fillStyle = 'rgba(0,0,0,.45)'; g.beginPath(); g.ellipse(px + 8, py + 13, 6, 2.5, 0, 0, 7); g.fill();
+      g.fillStyle = '#2c2018'; g.fillRect(px + 7, py + 7, 2, 6);
+      g.fillStyle = '#3a2a1e'; g.fillRect(px + 2, py + 3, 12, 6);
+      g.fillStyle = '#d8cdb4'; g.fillRect(px + 3, py + 3.5, 4.8, 4.5); g.fillRect(px + 8.2, py + 3.5, 4.8, 4.5);
+      g.fillStyle = 'rgba(40,30,24,.6)'; for (let k = 0; k < 3; k++) { g.fillRect(px + 3.6, py + 4.5 + k * 1.2, 3.6, 0.4); g.fillRect(px + 8.8, py + 4.5 + k * 1.2, 3.6, 0.4); }
+    }
+    if (c0 === 'h') {   // iron candle stand
+      g.fillStyle = 'rgba(0,0,0,.4)'; g.beginPath(); g.ellipse(px + 8, py + 12, 4, 1.8, 0, 0, 7); g.fill();
+      g.fillStyle = '#2a2420'; g.fillRect(px + 7.4, py + 4, 1.2, 8); g.fillRect(px + 5, py + 4, 6, 1);
+    }
+    if (c0 === 'v') {   // stair down: steps darkening toward the bottom
+      for (let k = 0; k < 4; k++) { g.fillStyle = `rgb(${50 - k * 11},${42 - k * 9},${34 - k * 8})`; g.fillRect(px, py + k * 4, T, 4); }
+    }
     if (c0 === 'U') {
       for (let k = 0; k < 4; k++) { g.fillStyle = k % 2 ? '#3d342b' : '#4a3f34'; g.fillRect(px, py + k * 4, T, 4); g.fillStyle = 'rgba(0,0,0,.4)'; g.fillRect(px, py + k * 4 + 3, T, 1); }
     }
@@ -114,7 +151,31 @@ function buildLayer(room) {
     }
     g.stroke();
   }
+  if (MAPS[room.id].inlay) paintInlay(g, room, MAPS[room.id].inlay);
   return c;
+}
+
+// The Library's floor: concentric rings of pale inlay under the old dome, broken where the fissure and the shelves cut it.
+function paintInlay(g, room, d) {
+  const cx = d.x * TILE, cy = d.y * TILE;
+  g.lineWidth = 0.8;
+  for (const [r, a] of [[d.r * TILE, 0.22], [d.r * TILE - 5, 0.14], [d.r * TILE * 0.55, 0.16], [d.r * TILE * 0.3, 0.12]]) {
+    for (let k = 0; k < 96; k++) {
+      const a0 = k / 96 * Math.PI * 2, a1 = (k + 0.7) / 96 * Math.PI * 2, mx = cx + Math.cos(a0) * r, my = cy + Math.sin(a0) * r;
+      const t = tileAtPx(room, mx, my);
+      if (t !== '.' && t !== 'h' && t !== 'k') continue;
+      if (hash(k, Math.round(r), 7) < 0.12) continue;   // missing tesserae
+      g.strokeStyle = `rgba(216,205,180,${a})`; g.beginPath(); g.arc(cx, cy, r, a0, a1); g.stroke();
+    }
+  }
+  for (let k = 0; k < 16; k++) {   // spokes
+    const an = k / 16 * Math.PI * 2;
+    for (let s = 0.32; s < 0.95; s += 0.04) {
+      const x0 = cx + Math.cos(an) * d.r * TILE * s, y0 = cy + Math.sin(an) * d.r * TILE * s;
+      if (tileAtPx(room, x0, y0) !== '.') continue;
+      g.fillStyle = 'rgba(216,205,180,.1)'; g.fillRect(x0 - 0.5, y0 - 0.5, 1, 1);
+    }
+  }
 }
 
 /* ---------- Actors (top-down, three-quarter) ---------- */
@@ -176,7 +237,7 @@ function lightsInView() {
   const out = [], t = G.time;
   for (const l of G.room.lights) {
     const f = l.fissure ? 1 + Math.sin(t * 1.3 + l.flicker) * 0.18 : l.torch ? 1 + Math.sin(t * 9 + l.flicker) * 0.04 + Math.sin(t * 23 + l.flicker * 3) * 0.025 : 1;
-    out.push({ x: l.x, y: l.y, r: l.r * f, color: l.color, warm: l.torch ? 0.22 : l.fissure ? 0.3 : 0.12 });
+    out.push({ x: l.x, y: l.y, r: l.r * f, color: l.color, warm: l.torch ? 0.22 : l.fissure ? 0.3 : 0.08 });
   }
   for (const a of G.actors) if (a.def.light) out.push({ x: a.x, y: a.y - 3, r: a.def.light, color: a.def.lightColor, warm: a.def.lightColor ? 0.14 : 0 });
   if (G.scene.lights) out.push(...G.scene.lights());
@@ -205,6 +266,10 @@ function hexA(hex, a) { const n = parseInt(hex.slice(1), 16); return `rgba(${n >
 
 function drawTorch(g, l) {
   const t = G.time + l.flicker;
+  if (l.candle) {
+    for (const dx of [-2.2, 0, 2.2]) { g.fillStyle = PAL.bone; g.fillRect(l.x + dx - 0.6, l.y + 2, 1.2, 2.2); g.fillStyle = PAL.emberHot; g.beginPath(); g.ellipse(l.x + dx, l.y + 1.2, 0.6, 1 + Math.sin(t * 11 + dx) * 0.2, 0, 0, 7); g.fill(); }
+    return;
+  }
   g.fillStyle = '#2a1f17'; g.fillRect(l.x - 1, l.y - 2, 2, 7);
   const fh = 4 + Math.sin(t * 13) * 0.8;
   g.fillStyle = PAL.ember; g.beginPath(); g.ellipse(l.x, l.y - 3, 2.2, fh, 0, 0, 7); g.fill();

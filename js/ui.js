@@ -26,8 +26,9 @@ function renderUI() {
         <button data-a="show-code">Save code</button>
         <button data-a="to-title">Return to title</button>
       </div>
+      <button data-a="mute">${AU.muted ? 'Sound off' : 'Sound on'}</button>
       ${U.code === 'show' ? `<p>Copy this to keep your save somewhere else.</p><textarea readonly>${esc(encodeSave())}</textarea>` : ''}
-      <p>WASD or arrows to move. 1, 2, 3 or Tab to change hero. E to examine. Space to pause. Esc for this menu.</p>
+      <p>WASD or arrows to move. 1, 2, 3 or Tab to change hero. E to examine. Space to pause. M to mute. Esc for this menu.</p>
     </div>`;
   } else if (G.naming) {
     const named = S.flags.named || {};
@@ -73,8 +74,9 @@ function act(a, data = {}) {
     catch (e) { U.err = 'That code could not be read.'; renderUI(); }
   }
   if (a === 'resume') { G.menu = false; U.code = null; renderUI(); }
+  if (a === 'mute') { setMuted(!AU.muted); renderUI(); }
   if (a === 'show-code') { U.code = 'show'; renderUI(); }
-  if (a === 'to-title') { G.menu = false; G.scene = null; G.room = null; U = { screen: 'title' }; renderUI(); }
+  if (a === 'to-title') { ambience(null); G.menu = false; G.scene = null; G.room = null; U = { screen: 'title' }; renderUI(); }
   if (a === 'advance') advanceSay();
   if (a === 'choose') chooseOption(+data.i);
   if (a === 'naming-close') { G.naming = null; renderUI(); }
@@ -98,6 +100,7 @@ function uiKeys() {
     return;
   }
   if (G.naming) return;
+  if (hit('KeyM')) setMuted(!AU.muted);
   if (hit('Escape')) { G.menu = !G.menu; U.code = null; renderUI(); return; }
   if (G.menu) return;
   if (hit('Space')) G.paused = !G.paused;

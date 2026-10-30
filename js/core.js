@@ -16,7 +16,7 @@ const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const fresh = () => ({
   v: 1, scene: 'escape', flags: {}, lead: 'raiden',
   party: { raiden: { alive: true }, ichabod: { alive: true }, kieran: { alive: true } },
-  will: true, playtime: 0,
+  will: true, playtime: 0, inv: {}, relics: {},
 });
 let S = null;
 // G is per-session: current scene object, room, actors, pause, overlay text.
@@ -56,6 +56,7 @@ function go(id, opts = {}) {
   G.sceneId = id; G.scene = SCENES[id]; G.say = null; G.naming = null; G.paused = false; G.shake = 0; G.opening = false;
   if (S && !opts.noSave) { S.scene = id; save(); }
   G.scene.enter(opts);
+  ambience(G.scene.amb || null);
   renderUI();
 }
 
@@ -65,6 +66,7 @@ function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000 || 0); last = now;
   G.time += dt;
   if (G.scene) {
+    audioTick(dt);
     uiKeys();   // first, so a key that advances text isn't also read by the scene in the same frame
     const frozen = G.paused || G.menu || G.say || G.naming;
     if (!frozen) { G.scene.update(dt); if (S) S.playtime += dt; }

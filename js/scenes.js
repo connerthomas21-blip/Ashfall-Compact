@@ -29,6 +29,7 @@ function narrate(blocks, then) { G.say = { blocks, i: 0, then }; renderUI(); }
 
 /* ---------- Scene 1: Escape (combat tail arrives in milestone 5) ---------- */
 SCENES.escape = roomScene('escape', {
+  amb: 'cavern',
   enter(opts) {
     if (opts.fromTitle && !flag('escape_intro')) {
       setFlag('escape_intro');
@@ -98,6 +99,7 @@ function examineClue(kind) {
 }
 
 SCENES.doors = roomScene('doors', {
+  amb: 'cavern',
   enter() {
     G.doorOpen = flag('doors_open') ? 1 : 0;
     if (flag('doors_open')) openDoorTiles();
@@ -116,7 +118,7 @@ SCENES.doors = roomScene('doors', {
       setFlag('doors_read');
     } else if (CLUES[t.kind]) examineClue(t.kind);
   },
-  onTrigger(t) { if (t.kind === 'X') go('thyken'); },   // milestone 4 puts the Library here
+  onTrigger(t) { if (t.kind === 'X') go('library'); },
   drawUnder: g => drawDoors(g),
   lights: () => G.doorOpen > 0 ? [{ x: (G.doorSpan.x0 + G.doorSpan.x1) / 2, y: G.doorSpan.y, r: 40 + G.doorOpen * 50, color: PAL.bone, warm: 0.06 * G.doorOpen }] : [],
 });
@@ -134,17 +136,17 @@ function speakName(raw) {
   G.naming = null;
   if (GOD_NAMES[n]) {
     if (n === 'mariveth' && S.flags.mariveth_name_source === undefined) S.flags.mariveth_name_source = 'spoken';   // the player knew it already
-    const fresh = !named[n]; named[n] = true; save();
+    const fresh = !named[n]; named[n] = true; save(); sfx('seal');
     const left = Object.keys(GOD_NAMES).filter(k => !named[k]);
     const seal = { kaelvahr: 'mountain', dinas: 'flame', mariveth: 'scrubbed' }[n];
     if (!left.length) return narrate([
       { text: `"${GOD_NAMES[n]}."` },
       { text: 'The scrubbed seal fills with a pale light, like moonlight seen from underwater. For a moment all three seals burn together.' },
       { text: 'Then the seam down the middle of the doors cracks open with a sound like a bone set back into place, and the two halves of the slab grind apart, and the air that comes out of the dark beyond is cold and smells of old paper and fresh earth.' },
-    ], () => { setFlag('doors_open'); G.opening = true; save(); });
+    ], () => { setFlag('doors_open'); G.opening = true; save(); sfx('doors'); });
     return narrate([{ text: fresh ? `"${GOD_NAMES[n]}." The ${seal} seal warms, and a faint light settles into its lines and stays there.` : `"${GOD_NAMES[n]}." The ${seal} seal is already lit. It does not need telling twice.` }]);
   }
-  S.flags.door_wrong = (S.flags.door_wrong || 0) + 1; save();
+  S.flags.door_wrong = (S.flags.door_wrong || 0) + 1; save(); sfx('thud');
   narrate([
     { text: 'The name falls flat against the stone and goes nowhere.' },
     { text: S.flags.door_wrong === 1 ? 'Somewhere behind you, in the dark you came through, something that was lying still is no longer lying still.' : 'Behind you, in the dark, more of the dead are getting up. You can hear the dry knock of them finding their feet.' },
@@ -179,8 +181,39 @@ function drawDoors(g) {
   }
 }
 
+/* ---------- Scene 3: The Library ---------- */
+SCENES.library = roomScene('library', {
+  amb: 'library',
+  enter() {
+    G.loot = G.room.triggers.filter(t => t.kind === 'L');   // map order = LOOT order
+    const vs = G.room.triggers.filter(t => t.kind === 'v');
+    G.room.stair = { x: vs.reduce((a, t) => a + t.x, 0) / vs.length, y: vs.reduce((a, t) => a + t.y, 0) / vs.length };
+    if (!flag('library_entered')) { setFlag('library_entered'); runDialogue('library_enter'); }
+  },
+  onInteract(t) {
+    if (t.kind === 'L') return takeLoot(G.loot.indexOf(t));
+    if (t.kind === 'M') return runDialogue('mariveth_shelf', null, flag('took_sea_prayer') || flag('left_sea_prayers') ? 'again' : 'a');
+    if (t.kind === 'R') return runDialogue('reading_stand');
+    if (t.kind === 'Z') return runDialogue('buried_wall');
+  },
+  onTrigger(t) { if (t.kind === 'v') go('thyken'); },
+  // The stair breathes up light from the fissure below it.
+  lights: () => { const s = G.room.stair; return [{ x: s.x, y: s.y, r: 70 + Math.sin(G.time * 1.1) * 8, color: PAL.ember, warm: 0.2 }]; },
+});
+
+function takeLoot(i) {
+  const L = LOOT[i], key = 'loot_' + i;
+  if (flag(key)) return narrate([{ text: 'The shelf has nothing else worth taking. Only books, and the books are not yours.' }]);
+  setFlag(key);
+  if (L.item) S.inv[L.item] = (S.inv[L.item] || 0) + (L.n || 1);
+  if (L.relic) S.relics[L.relic] = true;
+  save();
+  narrate([...L.lines.filter(l => cond(l.if)).map(toBlock), { who: 'Taken', text: `${L.name}. ${L.note}` }]);
+}
+
 /* ---------- Scene 4: Thyken (the Library hub above arrives in milestone 4) ---------- */
 SCENES.thyken = roomScene('deep', {
+  amb: 'deep',
   enter() {
     const k = G.room.triggers.find(t => t.kind === 'K');
     G.thyken = { x: k.x, y: k.y + 2 };

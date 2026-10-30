@@ -1,9 +1,9 @@
 'use strict';
 /* ============================== WORLD: rooms, collision, party movement, followers, camera ============================== */
 
-const SOLID = new Set(['#', 'D', 'o', '~', 'U', 'K']);
+const SOLID = new Set(['#', 'D', 'o', '~', 'U', 'K', 'B', 'E', 'L', 'M', 'R']);
 const SLOW = new Set([',']);
-const TRIGGERS = 'SXiKcamnq', INTERACT = 'iKcamnq';   // see the map legend in js/data.js
+const TRIGGERS = 'SXiKcamnqLMRZv', INTERACT = 'iKcamnqLMRZ';   // see the map legend in js/data.js
 
 function buildRoom(id) {
   const m = MAPS[id], rows = m.rows, h = rows.length, w = Math.max(...rows.map(r => r.length));
@@ -13,6 +13,8 @@ function buildRoom(id) {
     for (let x = 0; x < w; x++) {
       const c = rows[y][x] || '#', cx = (x + 0.5) * TILE, cy = (y + 0.5) * TILE;
       row.push(c);
+      if (c === 'M') room.lights.push({ x: cx + 10, y: cy, r: 44, color: '#a9c4c0' });
+      if (c === 'h') room.lights.push({ x: cx, y: cy - 4, r: 58, color: '#f2b36a', flicker: Math.random() * 10, torch: true, candle: true });
       if (c === 't') room.lights.push({ x: cx, y: cy, r: 92, color: PAL.ember, flicker: Math.random() * 10, torch: true });
       if (c === 'P' || c === 'w') room.spawns[c] = { x: cx, y: cy };
       if (TRIGGERS.includes(c)) room.triggers.push({ kind: c, x: cx, y: cy, tx: x, ty: y });
@@ -127,7 +129,7 @@ function separate(list) {
 
 // Trigger the leader is standing on, and interactables within reach.
 function triggerUnder(a) { return G.room.triggers.find(t => t.tx === Math.floor(a.x / TILE) && t.ty === Math.floor(a.y / TILE)); }
-function nearestInteract(a, reach = 26) { return G.room.triggers.filter(t => INTERACT.includes(t.kind)).find(t => Math.hypot(t.x - a.x, t.y - a.y) < reach); }
+function nearestInteract(a, reach = 22) { return G.room.triggers.filter(t => INTERACT.includes(t.kind)).find(t => Math.hypot(t.x - a.x, t.y - a.y) < reach); }
 
 /* ---------- Camera ---------- */
 function camTarget() {

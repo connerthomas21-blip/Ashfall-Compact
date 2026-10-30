@@ -52,7 +52,7 @@ const out = process.argv[2] || '.';
   // walk through the doors
   await pg.evaluate(() => { leader().x = 14.5 * 16; leader().y = 3.5 * 16; });
   await pg.keyboard.down('KeyW'); await pg.waitForTimeout(700); await pg.keyboard.up('KeyW'); await frames();
-  if ((await pg.evaluate(() => G.sceneId)) !== 'thyken') fail('did not pass through the doors');
+  if ((await pg.evaluate(() => G.sceneId)) !== 'library') fail('did not pass through the doors');
 
   // Route 2: the Tome, hidden first, then shown
   await fresh();

@@ -12,7 +12,7 @@ Design: `GAME_SPEC.md` (section 2 lore is canonical; ask before any choice that 
 - Tests that press keys must wait for animation frames between presses (see `press` in `test/dialogue.js`). Otherwise two presses can land in the same frame or skip one, and lines get skipped.
 
 ## Lessons carried over from Starbreaker Saga
-- A headless Playwright test for every milestone (`node test/smoke.js <dir>`, `node test/dialogue.js <dir>`, `node test/doors.js <dir>`) that plays the slice and saves screenshots.
+- A headless Playwright test for every milestone (`node test/smoke.js <dir>`, `node test/dialogue.js <dir>`, `node test/doors.js <dir>`, `node test/library.js <dir>`) that plays the slice and saves screenshots.
 - A `window.__fast`-style hook for balance bots once combat exists (milestone 5).
 - Save codes as well as localStorage.
 
@@ -23,11 +23,12 @@ Design: `GAME_SPEC.md` (section 2 lore is canonical; ask before any choice that 
 - `js/world.js`: rooms, circle-vs-tile collision, leader movement, breadcrumb followers, hero swap, triggers, camera
 - `js/script.js`: conversations as data (`DIALOGUES`), one entry per conversation
 - `js/dialogue.js`: dialogue engine with nodes, choices voiced by a named hero or the leader, flag conditions (`has`, `not`, `eq`, `alive`, `will`), hub revisits (`again`), and `lintDialogue`
+- `js/audio.js`: WebAudio ambience (`ambience(kind)` per scene via `amb`), `sfx(name)` hooks, mute
 - `js/scenes.js`: `roomScene` helper, `narrate`, one entry per story scene, the doors puzzle (`CLUES`, `speakName`, `drawDoors`), Thyken (`drawThyken`)
 - `js/ui.js`: DOM overlay (title, menu, story text box), frozen-world keys, boot
 
 ## Controls
-WASD or arrows move. 1/2/3 or Tab (Shift+Tab goes back) changes hero. E examines or advances text. Space pauses. Esc opens the menu.
+WASD or arrows move. 1/2/3 or Tab (Shift+Tab goes back) changes hero. E examines or advances text. Space pauses. M mutes. Esc opens the menu.
 
 ## Milestones
 1. **Scaffold** (done): scene manager, two rooms (escape cavern, sealed doors), a party of three with swap and followers, Will carrying the lantern, lighting, auto-save on every scene change, continue and save codes, Ichabod's sensing beat.
@@ -38,7 +39,7 @@ WASD or arrows move. 1/2/3 or Tab (Shift+Tab goes back) changes hero. E examines
    - `whisper`: Dinas speaks through Ichabod and he gets a nosebleed (`dinas_whisper`, permanent).
 
    A player who already knows the name and types it gets `spoken`. Wrong names add to `door_wrong`, and milestone 5 spawns that many extra undead. The doors open with a shake and lead on (to Thyken until milestone 4). `node test/doors.js <dir>` plays all three routes.
-4. The Library hub: exploration, loot shelves, Mariveth's shelf, the reading stand, fissure, staircase.
+4. **The Library** (done): a buried domed archive with shelf rows, a broken floor inlay, the fissure, a collapsed far wall (`Z`), candle stands, and an ember-lit stair down to Thyken. Four loot shelves fill `S.relics` (`ember_ink`, `whetstone`, `litany`) and `S.inv.draught` (2); their effects arrive in milestone 5. Mariveth's dry shelf lets you take a sea prayer or leave it (`took_sea_prayer` / `left_sea_prayers`, a sequel hook). The reading stand holds the Keeper's ledger, whose last entry is about Varn coming through the floor. Procedural ambient audio (`js/audio.js`): a rumble bed per scene, settling earth, paper, the fissure breathing, and door and seal sounds. M mutes. `node test/library.js <dir>` checks every interactable can be reached on foot.
 5. Combat core plus Scene 1's undead tail: attacks, two abilities per hero, cooldowns, prone/hexed/invulnerable, ally AI, pause for orders.
 6. The Choice: both branches and the permanent-loss rule.
 7. Varn: Obsidian Blade, Shard-Blades, Earthen Step, Diamond Skin, the mid-fight terrain clock, `varn_alive`.

@@ -23,6 +23,8 @@ const WILL = { name: 'Will', speed: 76, r: 5.5, body: PAL.moss, trim: PAL.boneDi
   S  Ichabod's sensing trigger              X  exit to the next scene
   D  sealed doors (solid)                   i  inscription (interact)
   U  stairs up (solid for now)              K  Thyken in his chains (solid, interact)
+  Library: B shelf (solid)  E collapsed earth (solid)  k fallen books (decor)  h candle stand (light)  v stair down
+           L loot shelf  M Mariveth's shelf  R reading stand  (all solid, interact)   Z the buried wall (interact)
   Clues at the doors (interact): c  Kael'Vahr mural   a  scorched altar   m  wine stains   n  sailor's charm   q  scrubbed carving
 */
 const MAPS = {
@@ -62,6 +64,37 @@ const MAPS = {
       '####################################',
     ],
   },
+  // The Deep Echo Library: a buried domed archive. Entry from the doors at the bottom; the stair down is at the centre.
+  library: {
+    dark: 0.92, inlay: { x: 21, y: 12, r: 9.5 },
+    rows: [
+      '############################################',
+      '##########EEEEEEEEEEEEEEEEEEEEEEEE##########',
+      '########EEEEEE,k,,EEEEEE,,k,EEEEEEEE########',
+      '######EEEE,,,k,,,,,,,,,,,,,,,,,,k,EEEEE#####',
+      '#####EE,,,,BBBB,,,,Z,,,,,,~~,BBBB,,,,,EE####',
+      '####E,,..............,,,,~~,,,.......,,,E###',
+      '###....BBBBBB...h......~~~....BBBBBB....####',
+      '###..L.k...............~~...........k...####',
+      '##....BBBBBB..........~~~.....BBBBBB.L...###',
+      '##.....................~~................###',
+      '##...BBBBB.....h.....~~.....h....BBBBB...###',
+      '##..................vv~..................###',
+      '##...BBBBB..........vv...........BBBBB...###',
+      '##M......................................###',
+      '##...BBBBB.....h...........h.....BBBBB...###',
+      '##.......................................###',
+      '###...BBBBBB.....k............BBBBBB.L..####',
+      '###..........................R..........####',
+      '####..BBBBBB.....t.......t...BBBBBB....#####',
+      '#####...............................k..#####',
+      '######...........L...w...............#######',
+      '########.................................###',
+      '###########..........P......################',
+      '##############............##################',
+      '############################################',
+    ],
+  },
   // Base of the stair: Thyken's chamber, and later Varn's arena.
   deep: {
     dark: 0.9,
@@ -69,12 +102,12 @@ const MAPS = {
       '##########################',
       '###########UUUU###########',
       '########....UU....########',
-      '######...,......,,..######',
+      '######...,..Pw..,,..######',
       '#####..t..........t..#####',
       '####.....,....~~.......###',
       '###.....,,...~~~~..,....##',
-      '##...w.......~~~..,,....##',
-      '##..P.....K...~~~~......##',
+      '##...........~~~..,,....##',
+      '##........K...~~~~......##',
       '###...........~~~.......##',
       '####...,,......~~~...,.###',
       '#####..........~~~~..#####',
