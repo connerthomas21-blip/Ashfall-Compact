@@ -3,6 +3,7 @@
 
 const SOLID = new Set(['#', 'D', 'o', '~', 'U', 'K']);
 const SLOW = new Set([',']);
+const TRIGGERS = 'SXiKcamnq', INTERACT = 'iKcamnq';   // see the map legend in js/data.js
 
 function buildRoom(id) {
   const m = MAPS[id], rows = m.rows, h = rows.length, w = Math.max(...rows.map(r => r.length));
@@ -14,7 +15,7 @@ function buildRoom(id) {
       row.push(c);
       if (c === 't') room.lights.push({ x: cx, y: cy, r: 92, color: PAL.ember, flicker: Math.random() * 10, torch: true });
       if (c === 'P' || c === 'w') room.spawns[c] = { x: cx, y: cy };
-      if ('SXiK'.includes(c)) room.triggers.push({ kind: c, x: cx, y: cy, tx: x, ty: y });
+      if (TRIGGERS.includes(c)) room.triggers.push({ kind: c, x: cx, y: cy, tx: x, ty: y });
       // The fissure breathes ember light; one light per few tiles is enough.
       if (c === '~' && (x + y * 3) % 4 === 0) room.lights.push({ x: cx, y: cy, r: 40, color: PAL.ember, flicker: Math.random() * 10, fissure: true });
     }
@@ -126,7 +127,7 @@ function separate(list) {
 
 // Trigger the leader is standing on, and interactables within reach.
 function triggerUnder(a) { return G.room.triggers.find(t => t.tx === Math.floor(a.x / TILE) && t.ty === Math.floor(a.y / TILE)); }
-function nearestInteract(a, reach = 26) { return G.room.triggers.filter(t => 'iK'.includes(t.kind)).find(t => Math.hypot(t.x - a.x, t.y - a.y) < reach); }
+function nearestInteract(a, reach = 26) { return G.room.triggers.filter(t => INTERACT.includes(t.kind)).find(t => Math.hypot(t.x - a.x, t.y - a.y) < reach); }
 
 /* ---------- Camera ---------- */
 function camTarget() {

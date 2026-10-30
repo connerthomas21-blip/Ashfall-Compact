@@ -56,6 +56,13 @@ textarea { width: min(90%, 520px); height: 90px; background: var(--well); color:
 #say .choices button { font-family: var(--body); font-size: .95em; letter-spacing: 0; text-align: left; background: var(--well); padding: 6px 12px; }
 #say .choices button span { color: var(--ember); margin-right: 10px; font-family: var(--display); }
 #say .choices button em { color: var(--dim); }
+#say .seals { display: flex; gap: 8px; margin: 8px 0 12px; flex-wrap: wrap; }
+#say .seal { flex: 1 1 120px; border: 1px solid var(--line); background: var(--well); padding: 4px 10px; min-height: 2.6em; color: var(--text); }
+#say .seal span { display: block; font-family: var(--display); font-size: .75em; color: var(--dim); letter-spacing: .06em; }
+#say .seal.lit { border-color: var(--ember); }
+#say form { display: flex; gap: 8px; flex-wrap: wrap; }
+#say input { flex: 1 1 180px; font: inherit; background: var(--well); color: var(--text); border: 1px solid var(--line); padding: 6px 10px; }
+#say input:focus { outline: none; border-color: var(--ember); }
 #say .more { text-align: right; font-size: .8em; color: var(--dim); }
 .hint { position: absolute; left: 0; right: 0; bottom: 8px; text-align: center; font-size: 14px; color: var(--dim); pointer-events: none; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }

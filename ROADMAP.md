@@ -12,7 +12,7 @@ Design: `GAME_SPEC.md` (section 2 lore is canonical; ask before any choice that 
 - Tests that press keys must wait for animation frames between presses (see `press` in `test/dialogue.js`). Otherwise two presses can land in the same frame or skip one, and lines get skipped.
 
 ## Lessons carried over from Starbreaker Saga
-- A headless Playwright test for every milestone (`node test/smoke.js <dir>`, `node test/dialogue.js <dir>`) that plays the slice and saves screenshots.
+- A headless Playwright test for every milestone (`node test/smoke.js <dir>`, `node test/dialogue.js <dir>`, `node test/doors.js <dir>`) that plays the slice and saves screenshots.
 - A `window.__fast`-style hook for balance bots once combat exists (milestone 5).
 - Save codes as well as localStorage.
 
@@ -23,7 +23,7 @@ Design: `GAME_SPEC.md` (section 2 lore is canonical; ask before any choice that 
 - `js/world.js`: rooms, circle-vs-tile collision, leader movement, breadcrumb followers, hero swap, triggers, camera
 - `js/script.js`: conversations as data (`DIALOGUES`), one entry per conversation
 - `js/dialogue.js`: dialogue engine with nodes, choices voiced by a named hero or the leader, flag conditions (`has`, `not`, `eq`, `alive`, `will`), hub revisits (`again`), and `lintDialogue`
-- `js/scenes.js`: `roomScene` helper, `narrate`, one entry per story scene
+- `js/scenes.js`: `roomScene` helper, `narrate`, one entry per story scene, the doors puzzle (`CLUES`, `speakName`, `drawDoors`), Thyken (`drawThyken`)
 - `js/ui.js`: DOM overlay (title, menu, story text box), frozen-world keys, boot
 
 ## Controls
@@ -32,7 +32,12 @@ WASD or arrows move. 1/2/3 or Tab (Shift+Tab goes back) changes hero. E examines
 ## Milestones
 1. **Scaffold** (done): scene manager, two rooms (escape cavern, sealed doors), a party of three with swap and followers, Will carrying the lantern, lighting, auto-save on every scene change, continue and save codes, Ichabod's sensing beat.
 2. **Dialogue and flag engine** (done): data-driven conversations with flag conditions and voiced choices. The Thyken conversation is fully scripted, with variants for a missing Ichabod or Will and for each Mariveth name source. Thyken's chamber (the future Varn arena) has its fissure and chains. `node test/dialogue.js <dir>` plays the conversation with and without Ichabod and Will. `#scene=<id>` in the URL starts a new game in that scene.
-3. Sealed-door puzzle with all three Mariveth routes and the wrong-guess consequence.
+3. **Sealed doors** (done): three seals (mountain, flame, scrubbed) and a naming panel where you type names. Spelling, case and apostrophes don't matter. Kael'Vahr comes from Will or the mural, Dinas from Ichabod or the altar. Mariveth has three routes, each recorded in `mariveth_name_source` (the first one found wins):
+   - `tome`: Ichabod can hide the scrap and show it later (`ichabod_revealed_tome`, `ichabod_hid_tome`).
+   - `clues`: the wine stains, the sailor's charm and the scrubbed carving, pieced together by Kieran.
+   - `whisper`: Dinas speaks through Ichabod and he gets a nosebleed (`dinas_whisper`, permanent).
+
+   A player who already knows the name and types it gets `spoken`. Wrong names add to `door_wrong`, and milestone 5 spawns that many extra undead. The doors open with a shake and lead on (to Thyken until milestone 4). `node test/doors.js <dir>` plays all three routes.
 4. The Library hub: exploration, loot shelves, Mariveth's shelf, the reading stand, fissure, staircase.
 5. Combat core plus Scene 1's undead tail: attacks, two abilities per hero, cooldowns, prone/hexed/invulnerable, ally AI, pause for orders.
 6. The Choice: both branches and the permanent-loss rule.

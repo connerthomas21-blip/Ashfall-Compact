@@ -53,7 +53,7 @@ const hit = (...c) => c.some(k => pressed.has(k));
 const SCENES = {};
 function go(id, opts = {}) {
   if (G.scene && G.scene.exit) G.scene.exit();
-  G.sceneId = id; G.scene = SCENES[id]; G.say = null; G.paused = false;
+  G.sceneId = id; G.scene = SCENES[id]; G.say = null; G.naming = null; G.paused = false; G.shake = 0; G.opening = false;
   if (S && !opts.noSave) { S.scene = id; save(); }
   G.scene.enter(opts);
   renderUI();
@@ -66,7 +66,7 @@ function frame(now) {
   G.time += dt;
   if (G.scene) {
     uiKeys();   // first, so a key that advances text isn't also read by the scene in the same frame
-    const frozen = G.paused || G.menu || G.say;
+    const frozen = G.paused || G.menu || G.say || G.naming;
     if (!frozen) { G.scene.update(dt); if (S) S.playtime += dt; }
     draw();
   }

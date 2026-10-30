@@ -1,8 +1,9 @@
 'use strict';
 /* ============================== DIALOGUE ENGINE ==============================
   Conversations are data (js/script.js): DIALOGUES[id] = { start, nodes }.
-  node:   { lines: [line], again?: [line], set?: {flag: value}, choices?: [choice], next?: nodeId, end?: true }
-            `again` replaces `lines` when the node is revisited (hub nodes).
+  node:   { lines: [line], again?: [line], set?: {flag: value}, setOnce?: {flag: value}, choices?: [choice], next?: nodeId, end?: true, act?: name }
+            `again` replaces `lines` when the node is revisited (hub nodes). `setOnce` only sets flags that are still unset.
+            `act` is handed to the conversation's onEnd callback, so a scene can react (e.g. open the naming panel).
   line:   { who?, text, if? }        who is a hero id, 'will', or any display name; no who = narration.
   choice: { text, go, by?, if?, set?, repeat? }
             by: the hero who says it (choice hidden if they're gone); otherwise the current leader says it.
@@ -25,14 +26,16 @@ function cond(c) {
 const whoName = w => w == null ? null : HEROES[w] ? HEROES[w].name : w === 'will' ? WILL.name : w;
 const toBlock = l => ({ who: whoName(l.who), text: l.text });
 
-function runDialogue(id, onEnd) {
+function runDialogue(id, onEnd, start) {
   D = { id, seen: new Set(), visited: new Set(), onEnd };
-  enterNode(DIALOGUES[id].start);
+  enterNode(start || DIALOGUES[id].start);
 }
 
 function enterNode(nid, lead = []) {
   const node = DIALOGUES[D.id].nodes[nid];
   if (node.set) Object.assign(S.flags, node.set);
+  if (node.setOnce) for (const [k, v] of Object.entries(node.setOnce)) if (S.flags[k] === undefined) S.flags[k] = v;
+  D.act = node.act || null;
   const src = D.visited.has(nid) && node.again ? node.again : node.lines || [];
   D.visited.add(nid);
   const blocks = [...lead, ...src.filter(l => cond(l.if)).map(toBlock)];
@@ -56,7 +59,7 @@ function endDialogue() {
   const d = D; D = null; G.say = null;
   save();
   renderUI();
-  d && d.onEnd && d.onEnd();
+  d && d.onEnd && d.onEnd(d.act);
 }
 
 // Checks a script for broken links and unknown speakers. Returns a list of problems (used by tests).

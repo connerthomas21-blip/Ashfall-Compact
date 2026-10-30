@@ -29,6 +29,14 @@ function renderUI() {
       ${U.code === 'show' ? `<p>Copy this to keep your save somewhere else.</p><textarea readonly>${esc(encodeSave())}</textarea>` : ''}
       <p>WASD or arrows to move. 1, 2, 3 or Tab to change hero. E to examine. Space to pause. Esc for this menu.</p>
     </div>`;
+  } else if (G.naming) {
+    const named = S.flags.named || {};
+    const slot = (k, seal) => `<div class="seal ${named[k] ? 'lit' : ''}"><span>${seal}</span>${named[k] ? esc(GOD_NAMES[k]) : '&nbsp;'}</div>`;
+    h = `<div id="say" class="naming"><div class="who">The Seals</div>
+      <p>Three seals wait beneath the inscription. Speak a name aloud.</p>
+      <div class="seals">${slot('kaelvahr', 'Mountain')}${slot('dinas', 'Flame')}${slot('mariveth', 'Scrubbed')}</div>
+      <form data-form="name"><input id="name-in" autocomplete="off" spellcheck="false" maxlength="24" placeholder="A name">
+      <button type="submit">Speak</button><button type="button" data-a="naming-close">Step back</button></form></div>`;
   } else if (G.say) {
     const b = G.say.blocks[G.say.i], last = G.say.i >= G.say.blocks.length - 1, ch = last && G.say.choices;
     h = `<div id="say" ${ch ? '' : 'data-a="advance"'}>${b.who ? `<div class="who">${esc(b.who)}</div>` : ''}<p>${esc(b.text)}</p>
@@ -38,6 +46,7 @@ function renderUI() {
     h = '<div class="hint">WASD or arrows to move · 1 2 3 or Tab to change hero · Space to pause · Esc for menu</div>';
   }
   uiEl.innerHTML = h;
+  const nameIn = document.getElementById('name-in'); if (nameIn) nameIn.focus();
   const first = uiEl.querySelector('button'); if (first && U.screen === 'title' && !U.code) first.focus();
 }
 
@@ -45,6 +54,12 @@ uiEl.addEventListener('click', e => {
   const el = e.target.closest('[data-a]'); if (!el) return;
   act(el.dataset.a, el.dataset);
 });
+
+uiEl.addEventListener('submit', e => {
+  e.preventDefault();
+  if (e.target.dataset.form === 'name') speakName(document.getElementById('name-in').value);
+});
+uiEl.addEventListener('keydown', e => { if (e.key === 'Escape' && G.naming) { G.naming = null; renderUI(); e.stopPropagation(); } });
 
 function act(a, data = {}) {
   if (a === 'new') {
@@ -62,6 +77,7 @@ function act(a, data = {}) {
   if (a === 'to-title') { G.menu = false; G.scene = null; G.room = null; U = { screen: 'title' }; renderUI(); }
   if (a === 'advance') advanceSay();
   if (a === 'choose') chooseOption(+data.i);
+  if (a === 'naming-close') { G.naming = null; renderUI(); }
 }
 
 function advanceSay() {
@@ -81,6 +97,7 @@ function uiKeys() {
     else if (hit('KeyE', 'Enter', 'Space')) { advanceSay(); pressed.clear(); }
     return;
   }
+  if (G.naming) return;
   if (hit('Escape')) { G.menu = !G.menu; U.code = null; renderUI(); return; }
   if (G.menu) return;
   if (hit('Space')) G.paused = !G.paused;

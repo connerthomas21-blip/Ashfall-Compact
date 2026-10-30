@@ -56,6 +56,33 @@ function buildLayer(room) {
         if (lip(1, 0)) g.fillRect(px + T - 2 - hash(x, y, 150 + k) * 2, py + o, 3, w);
       }
     }
+    if (c0 === 'c') {   // hand-cut slab with a mountain and a name
+      g.fillStyle = 'rgba(0,0,0,.4)'; g.fillRect(px + 2, py + 12, 13, 3);
+      g.fillStyle = '#4a4038'; g.fillRect(px + 2, py + 1, 12, 12); g.fillStyle = '#5a4e44'; g.fillRect(px + 2, py + 1, 12, 2);
+      g.strokeStyle = 'rgba(216,205,180,.5)'; g.lineWidth = 0.7; g.beginPath(); g.moveTo(px + 4, py + 9); g.lineTo(px + 6, py + 5); g.lineTo(px + 8, py + 7); g.lineTo(px + 10, py + 4); g.lineTo(px + 12, py + 9); g.stroke();
+      g.fillStyle = 'rgba(216,205,180,.45)'; g.fillRect(px + 4, py + 11, 8, 0.8);
+    }
+    if (c0 === 'a') {   // scorched altar
+      g.fillStyle = 'rgba(0,0,0,.45)'; g.beginPath(); g.ellipse(px + 8, py + 11, 9, 4, 0, 0, 7); g.fill();
+      g.fillStyle = '#1b1614'; g.fillRect(px + 1, py + 3, 14, 9); g.fillStyle = '#2a221d'; g.fillRect(px + 1, py + 3, 14, 2);
+      g.fillStyle = 'rgba(120,110,100,.35)'; for (let k = 0; k < 6; k++) g.fillRect(px + 2 + hash(x, y, k + 300) * 12, py + 4 + hash(x, y, k + 310) * 6, 1.5, 1);
+    }
+    if (c0 === 'm') {   // wine stains and tipped cups
+      g.fillStyle = 'rgba(70,24,40,.65)'; g.beginPath(); g.ellipse(px + 7, py + 8, 6, 4, 0.3, 0, 7); g.fill();
+      g.fillStyle = 'rgba(70,24,40,.4)'; g.beginPath(); g.ellipse(px + 12, py + 5, 3, 1.5, 0.8, 0, 7); g.fill();
+      g.fillStyle = '#7a5a44'; for (const [cx2, cy2] of [[3, 4], [5, 13], [13, 11]]) { g.beginPath(); g.ellipse(px + cx2, py + cy2, 1.6, 1.1, 0.6, 0, 7); g.fill(); }
+    }
+    if (c0 === 'n') {   // bones with a tin charm
+      g.strokeStyle = PAL.boneDim; g.lineWidth = 1.1; g.lineCap = 'round';
+      g.beginPath(); g.moveTo(px + 2, py + 6); g.lineTo(px + 12, py + 9); g.moveTo(px + 4, py + 12); g.lineTo(px + 13, py + 13); g.moveTo(px + 6, py + 4); g.lineTo(px + 8, py + 13); g.stroke();
+      g.fillStyle = PAL.bone; g.beginPath(); g.arc(px + 13, py + 4, 2.3, 0, 7); g.fill();
+      g.fillStyle = '#9aa3a0'; g.beginPath(); g.arc(px + 8, py + 8, 1.6, 0, 7); g.fill();
+    }
+    if (c0 === 'q') {   // scrubbed carving: a pale scar on the rock face above
+      g.fillStyle = 'rgba(160,150,135,.22)'; g.fillRect(px + 1, py - 5, 14, 6);
+      g.strokeStyle = 'rgba(30,24,20,.6)'; g.lineWidth = 0.5; for (let k = 0; k < 7; k++) { g.beginPath(); g.moveTo(px + 1 + k * 2, py - 5); g.lineTo(px + 3 + k * 2, py + 1); g.stroke(); }
+      g.fillStyle = 'rgba(216,205,180,.5)'; g.fillRect(px + 2, py - 3, 1, 2); g.fillRect(px + 4, py - 3, 1, 2);
+    }
     if (c0 === 'U') {
       for (let k = 0; k < 4; k++) { g.fillStyle = k % 2 ? '#3d342b' : '#4a3f34'; g.fillRect(px, py + k * 4, T, 4); g.fillStyle = 'rgba(0,0,0,.4)'; g.fillRect(px, py + k * 4 + 3, T, 1); }
     }
@@ -86,16 +113,6 @@ function buildLayer(room) {
       if (pick) { const b = vp(x + pick[0], y + pick[1]); g.moveTo(a.x, a.y); g.lineTo(b.x, b.y); }
     }
     g.stroke();
-  }
-  // Sealed doors: one obsidian slab across the run of D tiles, inscribed in bone.
-  const ds = []; room.grid.forEach((r, y) => r.forEach((c1, x) => c1 === 'D' && ds.push({ x, y })));
-  if (ds.length) {
-    const x0 = Math.min(...ds.map(d => d.x)) * T, x1 = (Math.max(...ds.map(d => d.x)) + 1) * T, y0 = ds[0].y * T;
-    g.fillStyle = PAL.obsidian; g.fillRect(x0 + 2, y0 - 10, x1 - x0 - 4, T + 10);
-    g.strokeStyle = '#2c2629'; g.lineWidth = 1; g.strokeRect(x0 + 2.5, y0 - 9.5, x1 - x0 - 5, T + 9);
-    g.fillStyle = '#0a0809'; g.fillRect((x0 + x1) / 2 - 0.5, y0 - 10, 1, T + 10);
-    g.fillStyle = 'rgba(216,205,180,.35)';
-    for (let i = 0; i < 26; i++) g.fillRect(x0 + 10 + i * ((x1 - x0 - 20) / 26), y0 + 2 + (i % 3), 3, 1);
   }
   return c;
 }
@@ -199,8 +216,9 @@ function draw() {
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = '#000'; ctx.fillRect(0, 0, cv.width, cv.height);
   const room = G.room; if (!room) return;
   if (!room.layer) room.layer = buildLayer(room);
-  const cx = Math.round(G.cam.x * SCALE) / SCALE, cy = Math.round(G.cam.y * SCALE) / SCALE;
-  G.cam.x = cx; G.cam.y = cy;
+  const sh = G.shake && !RM ? G.shake : 0;
+  const cx = Math.round((G.cam.x + (Math.random() - 0.5) * sh * 2) * SCALE) / SCALE, cy = Math.round((G.cam.y + (Math.random() - 0.5) * sh * 2) * SCALE) / SCALE;
+  const cam0 = { ...G.cam }; G.cam.x = cx; G.cam.y = cy;   // lighting uses the shaken camera too
   ctx.setTransform(SCALE, 0, 0, SCALE, -cx * SCALE, -cy * SCALE);
   ctx.drawImage(room.layer, 0, 0, room.layer.width / SCALE, room.layer.height / SCALE);
   for (const l of room.lights) if (l.torch) drawTorch(ctx, l);
@@ -208,6 +226,7 @@ function draw() {
   [...G.actors].sort((a, b) => a.y - b.y).forEach(a => drawActor(ctx, a));
   if (G.scene.drawOver) G.scene.drawOver(ctx);
   drawLighting(lightsInView());
+  Object.assign(G.cam, cam0);
   ctx.setTransform(SCALE, 0, 0, SCALE, 0, 0);
   drawHUD(ctx);
 }
@@ -222,6 +241,11 @@ function drawHUD(g) {
     g.fillStyle = alive ? (lead ? PAL.bone : PAL.boneDim) : '#5a5046'; g.fillText(HEROES[id].name, x + 11, y + 7.5);
     if (!alive) { g.fillStyle = '#5a5046'; g.fillRect(x + 10, y + 7, 30, 0.5); }
   });
+  if (G.prompt && !G.say && !G.naming && !G.menu) {
+    g.font = '8px "EB Garamond", Georgia, serif'; g.textAlign = 'center'; g.fillStyle = 'rgba(16,13,12,.8)';
+    const w = g.measureText(G.prompt).width + 12; g.fillRect(W / 2 - w / 2, H - 22, w, 13);
+    g.fillStyle = PAL.bone; g.fillText(G.prompt, W / 2, H - 15.5); g.textAlign = 'left';
+  }
   if (G.paused && !G.say && !G.menu) {
     g.fillStyle = 'rgba(0,0,0,.45)'; g.fillRect(0, 0, W, H);
     g.font = '12px "IM Fell English SC", Georgia, serif'; g.textAlign = 'center'; g.fillStyle = PAL.bone;

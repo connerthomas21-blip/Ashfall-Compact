@@ -140,3 +140,88 @@ DIALOGUES.thyken = {
     },
   },
 };
+
+/* ---------- Scene 2: The Sealed Doors ----------
+  Flags: knows_kaelvahr, knows_dinas, knows_mariveth, mariveth_name_source ('tome' | 'clues' | 'whisper', first route found wins),
+  ichabod_revealed_tome, ichabod_hid_tome, dinas_whisper (permanent: Ichabod let Dinas speak through him).
+  The clues in the cavern are handled in js/scenes.js; the names themselves are typed into the naming panel.
+*/
+DIALOGUES.doors = {
+  start: 'intro',
+  nodes: {
+    intro: {
+      lines: [
+        { text: 'The doors are a single slab of black stone, split down the middle by a seam too fine to fit a blade into. Letters run across them in a hand that was patient and is long dead.' },
+        { who: 'Inscription', text: '"The Forgotten Ones, Once Sharing in this Dominion, Now Finding Themselves Enslaved…"' },
+        { text: 'Beneath the words, three seals are set into the stone, each the size of a palm. One is cut with a mountain. One is cut with a flame. The third has been scrubbed so hard that the rock around it has gone pale.' },
+        { who: 'will', text: 'My grandfather used to say the old doors only open for the old names. I thought it was a thing you told children.', if: { will: true } },
+      ],
+      next: 'hub',
+    },
+    hub: {
+      lines: [{ text: 'The doors wait. They are waiting to be told something.' }],
+      again: [{ text: 'The doors wait.' }],
+      choices: [
+        { text: 'Who were the Forgotten Ones?', go: 'forgotten' },
+        { by: 'ichabod', text: 'There is something in the Tome. I have been carrying it a while.', go: 'tome', if: { not: ['knows_mariveth', 'ichabod_hid_tome'] } },
+        { by: 'ichabod', text: 'About the Tome. I should show you after all.', go: 'tome_show', if: { has: 'ichabod_hid_tome', not: 'ichabod_revealed_tome' } },
+        { by: 'ichabod', text: 'I could ask her. She would know the name.', go: 'whisper', if: { has: 'knows_dinas', not: 'knows_mariveth' } },
+        { text: 'Speak the names.', go: 'speak', repeat: true },
+        { text: 'Step back.', go: 'leave', repeat: true },
+      ],
+    },
+    forgotten: {
+      setOnce: { knows_kaelvahr: true, knows_dinas: true },
+      lines: [
+        { who: 'raiden', text: 'The Church teaches that before the Unification there were false gods, and that the Omnisiah gathered their peoples into one faith. It never names them. Naming them was the error.' },
+        { who: 'will', text: 'The mountain one is Kael\'Vahr. Every miner in the Ironpeaks knows that, whatever the priests say. You say it under your breath when the ground shakes, so he knows you are being polite.', if: { will: true } },
+        { text: 'Someone has scratched a name beside the mountain seal in a rough, quick hand: KAEL\'VAHR.', if: { will: false } },
+        { who: 'ichabod', text: 'And the flame is Dinas. I would know her anywhere. I think she is looking at that seal right now.', if: { alive: 'ichabod' } },
+        { who: 'kieran', text: 'Which leaves the one somebody scrubbed off. That\'s the one that matters, then. Nobody scrubs a thing that doesn\'t matter.', if: { alive: 'kieran' } },
+      ],
+      next: 'hub',
+    },
+    tome: {
+      lines: [
+        { text: 'Ichabod opens the Tome of Four Corners. The pages turn on their own and stop. Pressed between two leaves is a scrap of something that is not paper, thin and grey as the skin of a fish.' },
+        { who: 'ichabod', text: 'It has been in here since I found the book. I never told anyone. There is a name on it, and the name has been trying very hard not to be read.' },
+      ],
+      choices: [
+        { by: 'ichabod', text: 'Show them.', go: 'tome_show' },
+        { by: 'ichabod', text: 'Close the book.', go: 'tome_hide' },
+      ],
+    },
+    tome_show: {
+      set: { ichabod_revealed_tome: true, knows_mariveth: true },
+      setOnce: { mariveth_name_source: 'tome' },
+      lines: [
+        { text: 'He holds the scrap to the light. The letters are written in something that might once have been ink and might once have been seawater.' },
+        { who: 'Scrap', text: 'MARIVETH' },
+        { who: 'raiden', text: 'I have never heard that name.' },
+        { who: 'ichabod', text: 'No. That was the point of it.' },
+      ],
+      next: 'hub',
+    },
+    tome_hide: {
+      set: { ichabod_hid_tome: true },
+      lines: [
+        { text: 'Ichabod shuts the Tome. Whatever was on the scrap, he keeps it.' },
+        { who: 'ichabod', text: 'Not yet. Let us see what else this place gives up first.' },
+      ],
+      next: 'hub',
+    },
+    whisper: {
+      set: { dinas_whisper: true, knows_mariveth: true },
+      setOnce: { mariveth_name_source: 'whisper' },
+      lines: [
+        { text: 'Ichabod closes his eyes. For a moment every flame in the cavern leans toward him, as if a door has opened somewhere behind his head.' },
+        { who: 'ichabod', text: '…Mariveth.' },
+        { text: 'A thread of blood runs from his nose. He wipes it away with the back of his hand and does not look at any of you.' },
+        { who: 'ichabod', text: 'She gave it up too easily. She wanted me to ask. That is the part I do not like.' },
+      ],
+      next: 'hub',
+    },
+    speak: { act: 'naming', lines: [{ text: 'You step up to the seals.' }], end: true },
+    leave: { lines: [{ text: 'You step back from the doors.' }], end: true },
+  },
+};
