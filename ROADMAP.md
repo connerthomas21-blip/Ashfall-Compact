@@ -8,8 +8,11 @@ Design: `GAME_SPEC.md` (section 2 lore is canonical; ask before any choice that 
 - **Art:** muted shapes and lighting, text-only dialogue in paragraphs, real art dropped in later. Visuals stay as they are until the systems are done, so we avoid another round of art redos.
 - **Repo:** a new GitHub repo created by the user, committed after each milestone.
 
+## Testing notes
+- Tests that press keys must wait for animation frames between presses (see `press` in `test/dialogue.js`). Otherwise two presses can land in the same frame or skip one, and lines get skipped.
+
 ## Lessons carried over from Starbreaker Saga
-- A headless Playwright test for every milestone (`node test/smoke.js <dir>`) that plays the slice and saves screenshots.
+- A headless Playwright test for every milestone (`node test/smoke.js <dir>`, `node test/dialogue.js <dir>`) that plays the slice and saves screenshots.
 - A `window.__fast`-style hook for balance bots once combat exists (milestone 5).
 - Save codes as well as localStorage.
 
@@ -18,6 +21,8 @@ Design: `GAME_SPEC.md` (section 2 lore is canonical; ask before any choice that 
 - `js/data.js`: palette `PAL`, `HEROES`, `WILL`, ASCII `MAPS` (legend at the top)
 - `js/render.js`: canvas scaling, cached room layer, top-down actors, darkness mask and warm light pass, HUD
 - `js/world.js`: rooms, circle-vs-tile collision, leader movement, breadcrumb followers, hero swap, triggers, camera
+- `js/script.js`: conversations as data (`DIALOGUES`), one entry per conversation
+- `js/dialogue.js`: dialogue engine with nodes, choices voiced by a named hero or the leader, flag conditions (`has`, `not`, `eq`, `alive`, `will`), hub revisits (`again`), and `lintDialogue`
 - `js/scenes.js`: `roomScene` helper, `narrate`, one entry per story scene
 - `js/ui.js`: DOM overlay (title, menu, story text box), frozen-world keys, boot
 
@@ -26,7 +31,7 @@ WASD or arrows move. 1/2/3 or Tab (Shift+Tab goes back) changes hero. E examines
 
 ## Milestones
 1. **Scaffold** (done): scene manager, two rooms (escape cavern, sealed doors), a party of three with swap and followers, Will carrying the lantern, lighting, auto-save on every scene change, continue and save codes, Ichabod's sensing beat.
-2. Dialogue and flag engine (scripts as data, branches, conditions on flags), with the Thyken conversation fully scripted.
+2. **Dialogue and flag engine** (done): data-driven conversations with flag conditions and voiced choices. The Thyken conversation is fully scripted, with variants for a missing Ichabod or Will and for each Mariveth name source. Thyken's chamber (the future Varn arena) has its fissure and chains. `node test/dialogue.js <dir>` plays the conversation with and without Ichabod and Will. `#scene=<id>` in the URL starts a new game in that scene.
 3. Sealed-door puzzle with all three Mariveth routes and the wrong-guess consequence.
 4. The Library hub: exploration, loot shelves, Mariveth's shelf, the reading stand, fissure, staircase.
 5. Combat core plus Scene 1's undead tail: attacks, two abilities per hero, cooldowns, prone/hexed/invulnerable, ally AI, pause for orders.
